@@ -1285,7 +1285,7 @@ int main()
         return 1;
     }
 
-#if 0 // JudgeData/PlayDataの1プレイ取得テストは一時的に無効化
+// #if 0 // JudgeData/PlayDataの1プレイ取得テストは一時的に無効化
     /*
      * ------------------------------------------------------------
      * 13. JudgeData 1プレイ取得テスト
@@ -1435,9 +1435,9 @@ int main()
             static_cast<std::uintptr_t>(
                 playDataResult.rva)));
 
-#endif
+// #endif
 
-#if 0 // PlaySettingsの2段階検索テストは一時的に無効化
+// #if 0
     /*
      *
      * 15. PlaySettings
@@ -1503,7 +1503,7 @@ int main()
         playSettingsCandidateRva;
 
     // JudgeDataテストを無効化しているため、現在確認済みのP2側レイアウトを使用する。
-    constexpr bool isP2PlaySettingsLayout = true;
+    const bool isP2PlaySettingsLayout = playSnapshot.playType == JudgePlayType::P2;
 
     if (isP2PlaySettingsLayout)
     {
@@ -1771,9 +1771,9 @@ int main()
     // LOG_INFO(
     //     "========================================");
 
-#endif
+// // #endif
 
-#if 0
+// #if 0
 
     /*
      * ------------------------------------------------------------
@@ -1793,8 +1793,8 @@ int main()
     constexpr std::size_t knownCurrentSongRva =
         0x02886370;
 
-    constexpr std::size_t knownPlayDataRva =
-        0x025D9404;
+    // constexpr std::size_t knownPlayDataRva =
+    //     0x025D9404;
 
     const std::uintptr_t knownCurrentSongAddress =
         module.baseAddress() +
@@ -1920,19 +1920,20 @@ int main()
 
     LOG_INFO(
         "CurrentSong read values match the search values.");
-#endif
+// #endif
 
     /*
-    *
-    *  PlayData
-    *
-    */
+     *
+     *  PlayData
+     *
+     */
 
     PlayDataReader playDataReader(memoryReader);
 
     PlayDataSnapshot playData{};
 
-    constexpr std::size_t playDataRva = 0x025D9404;
+    const std::uintptr_t playDataRva =
+        offsetManager.get(OffsetType::PlayData);
 
     const auto playDataAddress =
         module.baseAddress() + playDataRva;
