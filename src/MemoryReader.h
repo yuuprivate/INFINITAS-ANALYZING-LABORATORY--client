@@ -33,6 +33,7 @@ public:
         T& value
     ) const;
 
+    
 private:
     const Process& process_;
 

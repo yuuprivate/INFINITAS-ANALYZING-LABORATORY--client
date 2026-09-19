@@ -372,8 +372,11 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="D:\recommendsite_client\project_client\src\OffsetSearcher.cpp" />
     <ClCompile Include="D:\recommendsite_client\project_client\src\Module.cpp" />
     <ClCompile Include="D:\recommendsite_client\project_client\src\JudgeData.cpp" />
+    <ClCompile Include="D:\recommendsite_client\project_client\src\ScoreMapReader.cpp" />
+    <ClCompile Include="D:\recommendsite_client\project_client\src\Tracker.cpp" />
+    <ClCompile Include="D:\recommendsite_client\project_client\src\PlayResult.cpp" />
     <ClCompile Include="D:\recommendsite_client\project_client\src\CurrentSong.cpp" />
-    <ClCompile Include="D:\recommendsite_client\project_client\src\PlayData.cpp" />
+    <ClCompile Include="D:\recommendsite_client\project_client\src\MusicTableReader.cpp" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

@@ -1,0 +1,94 @@
+ProcessFinder
+    ↓
+PID
+
+Process
+    ↓
+HANDLE
+
+Module
+    ↓
+Base Address
+
+OffsetManager
+    ↓
+「どのバージョンの」「どのRVAを使うか」
+
+PatternScanner
+    ↓
+必要になったときだけパターン検索
+
+MemoryReader
+    ↓
+実際のReadProcessMemory
+
+
+const DWORD processId =
+    ProcessFinder::waitForProcess();
+
+Process process;
+
+process.open(processId);
+
+std::uintptr_t baseAddress = 0;
+
+process.getMainModuleBaseAddress(
+    baseAddress
+);
+
+MemoryReader memoryReader(process);
+
+VersionDetector versionDetector(
+    memoryReader
+);
+
+std::string detectedVersion;
+
+versionDetector.detect(
+    baseAddress,
+    detectedVersion
+);
+
+OffsetManager offsetManager;
+
+offsetManager.load(
+    "offsets.txt",
+    baseAddress
+);
+
+if (detectedVersion != offsetManager.version())
+{
+    return 1;
+}
+
+
+                     INFINITAS / bm2dx.exe
+                              │
+                              ▼
+                       ProcessFinder
+                              │
+                             PID
+                              ▼
+                           Process
+                              │
+                         OpenProcess
+                              ▼
+                         MemoryReader
+                         /          \
+                        /            \
+             VersionDetector      OffsetManager
+                    │                  │
+         2026080500             offsets.txt
+                    │                  │
+                    └──────┬───────────┘
+                           ▼
+                     Version Match
+                           │
+                           ▼
+                     SongList Address
+                           │
+                           ▼
+                    DataLoaded Wait
+                           │
+                           ▼
+                        5.1.1.

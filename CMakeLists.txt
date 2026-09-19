@@ -18,8 +18,11 @@ add_executable(project_client
     src/OffsetSearcher.cpp
     src/Module.cpp
     src/JudgeData.cpp
+    src/ScoreMapReader.cpp
+    src/Tracker.cpp
+    src/PlayResult.cpp
     src/CurrentSong.cpp
-    src/PlayData.cpp
+    src/MusicTableReader.cpp
 )
 
 if (MSVC)
