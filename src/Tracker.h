@@ -8,10 +8,18 @@
 #include <string>
 #include <utility>
 
+class MusicTableReader;
+
 struct TrackerEntry
 {
+    std::string title;
+    std::string genre;
+    std::string artist;
+    
     std::int32_t bestClearLamp = 0;
     std::int32_t bestExScore = 0;
+
+    std::int32_t rating = 0;
 
     std::int32_t bestMissCount = 0;
     bool bestMissCountValid = false;
@@ -19,6 +27,8 @@ struct TrackerEntry
     JudgePlayType lastPlayType =
         JudgePlayType::P1;
 
+    std::int32_t notes = 0;
+    
     std::chrono::system_clock::time_point lastPlayedAt{};
 };
 
@@ -40,8 +50,6 @@ private:
     using ChartKey = std::tuple<std::int32_t, std::int32_t, JudgePlayType>;
 
     std::map<
-        ChartKey,TrackerEntry> entries_;
+        ChartKey, TrackerEntry>
+        entries_;
 };
-
-
-    

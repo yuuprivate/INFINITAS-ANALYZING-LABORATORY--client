@@ -15,20 +15,12 @@ MemoryReader::MemoryReader(
     LOG_INFO(
         "MemoryReader を初期化しました。"
     );
-
-    LOG_INFO(
-        "MemoryReader initialized successfully."
-    );
 }
 
 bool MemoryReader::isReadableProtection(
     DWORD protection
 )
 {
-    /*
-     * PAGE_GUARD が付いている領域は、
-     * 通常の読み取り対象として扱わない。
-     */
     if ((protection & PAGE_GUARD) != 0)
     {
         return false;
@@ -67,11 +59,8 @@ bool MemoryReader::isReadable(
         return true;
     }
 
-    std::uintptr_t currentAddress =
-        address;
-
-    std::size_t remainingSize =
-        size;
+    std::uintptr_t currentAddress = address;
+    std::size_t remainingSize = size;
 
     while (remainingSize > 0)
     {
@@ -80,9 +69,7 @@ bool MemoryReader::isReadable(
         const SIZE_T queryResult =
             VirtualQueryEx(
                 process_.handle(),
-                reinterpret_cast<LPCVOID>(
-                    currentAddress
-                ),
+                reinterpret_cast<LPCVOID>(currentAddress),
                 &memoryInfo,
                 sizeof(memoryInfo)
             );
@@ -92,84 +79,45 @@ bool MemoryReader::isReadable(
             return false;
         }
 
-        /*
-         * MEM_COMMIT 以外は読み取り可能とは扱わない。
-         */
         if (memoryInfo.State != MEM_COMMIT)
         {
             return false;
         }
 
-        if (!isReadableProtection(
-                memoryInfo.Protect
-            ))
+        if (!isReadableProtection(memoryInfo.Protect))
         {
             return false;
         }
 
         const auto regionBase =
-            reinterpret_cast<std::uintptr_t>(
-                memoryInfo.BaseAddress
-            );
+            reinterpret_cast<std::uintptr_t>(memoryInfo.BaseAddress);
 
         const auto regionSize =
-            static_cast<std::uintptr_t>(
-                memoryInfo.RegionSize
-            );
+            static_cast<std::uintptr_t>(memoryInfo.RegionSize);
 
-        if (regionSize == 0)
+        if (regionSize == 0 || currentAddress < regionBase)
         {
             return false;
         }
 
-        if (currentAddress < regionBase)
-        {
-            return false;
-        }
-
-        const std::uintptr_t offsetInRegion =
-            currentAddress - regionBase;
+        const std::uintptr_t offsetInRegion = currentAddress - regionBase;
 
         if (offsetInRegion >= regionSize)
         {
             return false;
         }
 
-        const std::uintptr_t availableSize =
-            regionSize - offsetInRegion;
-
-        const std::uintptr_t remaining =
-            static_cast<std::uintptr_t>(
-                remainingSize
-            );
-
-        const std::uintptr_t advance =
-            std::min(
-                availableSize,
-                remaining
-            );
+        const std::uintptr_t availableSize = regionSize - offsetInRegion;
+        const std::uintptr_t remaining = static_cast<std::uintptr_t>(remainingSize);
+        const std::uintptr_t advance = std::min(availableSize, remaining);
 
         if (advance == 0)
         {
             return false;
         }
 
-        if (
-            advance >
-            static_cast<std::uintptr_t>(
-                std::numeric_limits<std::size_t>::max()
-            )
-        )
-        {
-            return false;
-        }
-
         currentAddress += advance;
-
-        remainingSize -=
-            static_cast<std::size_t>(
-                advance
-            );
+        remainingSize -= static_cast<std::size_t>(advance);
     }
 
     return true;
@@ -186,15 +134,11 @@ bool MemoryReader::read(
         return false;
     }
 
-    if (buffer == nullptr ||
-        size == 0)
+    if (buffer == nullptr || size == 0)
     {
         return false;
     }
 
-    /*
-     * 要求範囲全体が読み取り可能であることを確認する。
-     */
     if (!isReadable(address, size))
     {
         return false;
@@ -205,9 +149,7 @@ bool MemoryReader::read(
     const BOOL result =
         ReadProcessMemory(
             process_.handle(),
-            reinterpret_cast<LPCVOID>(
-                address
-            ),
+            reinterpret_cast<LPCVOID>(address),
             buffer,
             size,
             &bytesRead
@@ -232,21 +174,14 @@ bool MemoryReader::readReadable(
         return false;
     }
 
-    if (buffer == nullptr ||
-        size == 0)
+    if (buffer == nullptr || size == 0)
     {
         return false;
     }
 
-    auto* output =
-        static_cast<std::uint8_t*>(buffer);
-
-    std::uintptr_t currentAddress =
-        address;
-
-    std::size_t remainingSize =
-        size;
-
+    auto* output = static_cast<std::uint8_t*>(buffer);
+    std::uintptr_t currentAddress = address;
+    std::size_t remainingSize = size;
     bool readSomething = false;
 
     while (remainingSize > 0)
@@ -256,109 +191,58 @@ bool MemoryReader::readReadable(
         const SIZE_T queryResult =
             VirtualQueryEx(
                 process_.handle(),
-                reinterpret_cast<LPCVOID>(
-                    currentAddress
-                ),
+                reinterpret_cast<LPCVOID>(currentAddress),
                 &memoryInfo,
                 sizeof(memoryInfo)
             );
 
         if (queryResult == 0)
         {
-            /*
-             * 残りは読み取れないため0埋め。
-             */
-            std::fill(
-                output,
-                output + remainingSize,
-                0
-            );
-
+            std::fill(output, output + remainingSize, 0);
             break;
         }
 
         const auto regionBase =
-            reinterpret_cast<std::uintptr_t>(
-                memoryInfo.BaseAddress
-            );
+            reinterpret_cast<std::uintptr_t>(memoryInfo.BaseAddress);
 
         const auto regionSize =
-            static_cast<std::uintptr_t>(
-                memoryInfo.RegionSize
-            );
+            static_cast<std::uintptr_t>(memoryInfo.RegionSize);
 
-        if (
-            regionSize == 0 ||
-            currentAddress < regionBase
-        )
+        if (regionSize == 0 || currentAddress < regionBase)
         {
-            std::fill(
-                output,
-                output + remainingSize,
-                0
-            );
-
+            std::fill(output, output + remainingSize, 0);
             break;
         }
 
-        const std::uintptr_t offsetInRegion =
-            currentAddress - regionBase;
+        const std::uintptr_t offsetInRegion = currentAddress - regionBase;
 
         if (offsetInRegion >= regionSize)
         {
-            std::fill(
-                output,
-                output + remainingSize,
-                0
-            );
-
+            std::fill(output, output + remainingSize, 0);
             break;
         }
 
-        const std::uintptr_t availableSize =
-            regionSize - offsetInRegion;
-
+        const std::uintptr_t availableSize = regionSize - offsetInRegion;
         const std::size_t requestedSize =
-            std::min(
-                remainingSize,
-                static_cast<std::size_t>(
-                    std::min(
-                        availableSize,
-                        static_cast<std::uintptr_t>(
-                            std::numeric_limits<
-                                std::size_t
-                            >::max()
-                        )
-                    )
-                )
-            );
+            std::min(remainingSize, static_cast<std::size_t>(availableSize));
 
         bool regionReadSuccessfully = false;
 
-        if (
-            memoryInfo.State == MEM_COMMIT &&
-            isReadableProtection(
-                memoryInfo.Protect
-            )
-        )
+        if (memoryInfo.State == MEM_COMMIT &&
+            isReadableProtection(memoryInfo.Protect))
         {
             SIZE_T bytesRead = 0;
 
             const BOOL result =
                 ReadProcessMemory(
                     process_.handle(),
-                    reinterpret_cast<LPCVOID>(
-                        currentAddress
-                    ),
+                    reinterpret_cast<LPCVOID>(currentAddress),
                     output,
                     requestedSize,
                     &bytesRead
                 );
 
-            if (
-                result != FALSE &&
-                bytesRead == requestedSize
-            )
+            if (result != FALSE && bytesRead == requestedSize)
             {
                 regionReadSuccessfully = true;
                 readSomething = true;
@@ -367,31 +251,101 @@ bool MemoryReader::readReadable(
 
         if (!regionReadSuccessfully)
         {
-            /*
-             * 読み取れない領域は0で埋める。
-             */
-            std::fill(
-                output,
-                output + requestedSize,
-                0
-            );
+            std::fill(output, output + requestedSize, 0);
         }
 
-        /*
-         * 成功・失敗に関係なく、
-         * バッファと実アドレスの対応を維持するため、
-         * requestedSize 分だけ進める。
-         */
         output += requestedSize;
-
-        currentAddress +=
-            static_cast<std::uintptr_t>(
-                requestedSize
-            );
-
-        remainingSize -=
-            requestedSize;
+        currentAddress += static_cast<std::uintptr_t>(requestedSize);
+        remainingSize -= requestedSize;
     }
 
     return readSomething;
+}
+
+bool MemoryReader::isExecutableAddress(
+    std::uintptr_t address
+) const
+{
+    if (!process_.isOpen())
+    {
+        return false;
+    }
+
+    MEMORY_BASIC_INFORMATION mbi{};
+    if (VirtualQueryEx(
+            process_.handle(),
+            reinterpret_cast<LPCVOID>(address),
+            &mbi,
+            sizeof(mbi)
+        ) == 0)
+    {
+        return false;
+    }
+
+    if ((mbi.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)) == 0)
+    {
+        return false;
+    }
+
+    const auto moduleBase = reinterpret_cast<std::uintptr_t>(mbi.AllocationBase);
+    if (moduleBase == 0)
+    {
+        return false;
+    }
+
+    // 1. DOSヘッダーの読み取り（テンプレート参照呼び出しを使用）
+    IMAGE_DOS_HEADER dosHeader{};
+    if (!read(moduleBase, dosHeader))
+    {
+        return false;
+    }
+
+    if (dosHeader.e_magic != IMAGE_DOS_SIGNATURE)
+    {
+        return false;
+    }
+
+    // 2. NTヘッダーの読み取り
+    const std::uintptr_t ntHeaderAddr = moduleBase + static_cast<std::uintptr_t>(dosHeader.e_lfanew);
+    IMAGE_NT_HEADERS64 ntHeaders{};
+    if (!read(ntHeaderAddr, ntHeaders))
+    {
+        return false;
+    }
+
+    if (ntHeaders.Signature != IMAGE_NT_SIGNATURE)
+    {
+        return false;
+    }
+
+    // 3. セクションヘッダー配列の先頭アドレスを計算
+    const std::uintptr_t sectionHeaderArrayAddr =
+        ntHeaderAddr +
+        offsetof(IMAGE_NT_HEADERS64, OptionalHeader) +
+        ntHeaders.FileHeader.SizeOfOptionalHeader;
+
+    const WORD numberOfSections = ntHeaders.FileHeader.NumberOfSections;
+
+    // 4. 各セクションの属性をチェック
+    for (WORD i = 0; i < numberOfSections; ++i)
+    {
+        IMAGE_SECTION_HEADER sectionHeader{};
+        const std::uintptr_t currentSectionAddr =
+            sectionHeaderArrayAddr + (i * sizeof(IMAGE_SECTION_HEADER));
+
+        if (!read(currentSectionAddr, sectionHeader))
+        {
+            continue;
+        }
+
+        const std::uintptr_t sectionStart = moduleBase + sectionHeader.VirtualAddress;
+        const std::uintptr_t sectionEnd = sectionStart + sectionHeader.Misc.VirtualSize;
+
+        if (address >= sectionStart && address < sectionEnd)
+        {
+            return (sectionHeader.Characteristics & IMAGE_SCN_MEM_EXECUTE) != 0;
+        }
+    }
+
+    return false;
 }

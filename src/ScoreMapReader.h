@@ -49,7 +49,8 @@ public:
     bool dumpAllRecordsToTracker(
         std::uintptr_t dataMapRva,
         Tracker &tracker,
-        const std::string &tsvFilePath) const;
+        const std::string &tsvFilePath,
+    const MusicTableReader &musicTableReader) const;
 
     bool inspectScoreRecord(
         std::uintptr_t dataMapRva,

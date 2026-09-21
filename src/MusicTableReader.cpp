@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <array>
 
 namespace
 {
@@ -25,7 +26,7 @@ MusicTableReader::MusicTableReader(const MemoryReader &memoryReader, std::uintpt
 
 bool MusicTableReader::scanAndBuildMusicMap(std::uintptr_t searchStartRva, std::size_t scanSize)
 {
-    LOG_INFO("======== MUSIC TABLE MAP BUILDING START ========");
+    LOG_INFO("======== MUSIC TABLE BUILDER START (DEBUG MODE) ========");
 
     if (baseAddress_ == 0 || moduleSize_ == 0)
     {
@@ -33,119 +34,208 @@ bool MusicTableReader::scanAndBuildMusicMap(std::uintptr_t searchStartRva, std::
         return false;
     }
 
-    if (searchStartRva >= moduleSize_)
-    {
-        searchStartRva = 0;
-    }
-    const std::size_t actualScanSize = std::min(scanSize, moduleSize_ - searchStartRva);
+    const std::size_t safeScanSize = std::min(scanSize, moduleSize_);
 
-    LOG_INFO("Reading memory for music map scan (RVA: 0x" + toHex(searchStartRva) +
-             ", Size: " + std::to_string(actualScanSize) + " bytes)...");
-
-    std::vector<std::uint8_t> buffer(actualScanSize);
-    if (!memoryReader_.read(baseAddress_ + searchStartRva, buffer.data(), actualScanSize))
+    cachedBuffer_.resize(safeScanSize);
+    if (!memoryReader_.read(baseAddress_, cachedBuffer_.data(), safeScanSize))
     {
-        LOG_ERROR("Failed to read memory for music map scan.");
+        LOG_ERROR("Failed to read module memory.");
         return false;
     }
 
     musicMap_.clear();
+    notesMap_.clear();
+    titleMap_.clear();
+    genreMap_.clear();
+    artistMap_.clear();
 
-    for (std::size_t i = kSongIdOffsetFromTitle; i <= actualScanSize - sizeof(std::int32_t); i += 4)
+    const std::size_t ENTRY_SIZE = 1840; // 0x730
+    const std::size_t TITLE_OFFSET = 0;
+    const std::size_t GENRE_OFFSET = 64;
+    const std::size_t ARTIST_OFFSET = 192;
+    const std::size_t NOTES_OFFSET = 624;
+    const std::size_t ID_OFFSET = 1200;
+
+    const std::size_t anchorRva = 0x3340E80;
+    LOG_INFO("Anchor RVA: 0x" + toHex(anchorRva));
+
+    // 安全なテーブル開始位置の特定（遡りすぎ防止の安全弁を追加）
+    std::size_t tableStartRva = anchorRva;
+    int backwardCount = 0;
+    while (tableStartRva >= ENTRY_SIZE && backwardCount < 5000) // 最大5000曲分まで安全に遡る
     {
-        std::int32_t songId = 0;
-        std::memcpy(&songId, &buffer[i], sizeof(std::int32_t));
+        std::size_t prevRva = tableStartRva - ENTRY_SIZE;
+        if (prevRva >= safeScanSize)
+            break;
 
-        if (songId >= 1000 && songId <= 40000)
+        char firstChar = static_cast<char>(cachedBuffer_[prevRva + TITLE_OFFSET]);
+        std::int32_t prevSongId = 0;
+        std::memcpy(&prevSongId, &cachedBuffer_[prevRva + ID_OFFSET], sizeof(std::int32_t));
+
+        // 厳しすぎる条件を少し緩和: タイトルが完全にゴミデータでなければ遡る
+        if (prevSongId > 0 && prevSongId < 200000)
         {
-            if (songId == 24080)
-            {
-                LOG_INFO("=== WIDE SURROUNDING DUMP FOR SONG_ID 24080 (Notes & Levels) ===");
-                
-                std::ptrdiff_t base = static_cast<std::ptrdiff_t>(i);
-                std::ptrdiff_t startOffset = -650;
-                std::ptrdiff_t endOffset = -480;
-                
-                if (base + startOffset >= 0 && base + endOffset <= static_cast<std::ptrdiff_t>(actualScanSize))
-                {
-                    std::ostringstream oss;
-                    oss << "\n--- Offset range [-650 to -480] from song_id ---\n";
-                    
-                    for (std::ptrdiff_t off = startOffset; off <= endOffset; off += 2) // 2バイト刻みで細かく走査
-                    {
-                        std::int16_t val16 = 0;
-                        std::int32_t val32 = 0;
-                        
-                        std::memcpy(&val16, &buffer[base + off], 2);
-                        if (base + off + 4 <= static_cast<std::ptrdiff_t>(actualScanSize))
-                        {
-                            std::memcpy(&val32, &buffer[base + off], 4);
-                        }
-                        
-                        // レベルの範囲（1〜12）に合致する値があれば目印をつける
-                        bool isLevelRange = (val16 >= 1 && val16 <= 12);
-                        
-                        oss << "Rel [" << (off >= 0 ? "+" : "") << off << "] "
-                            << "I16: " << std::setw(3) << val16 << (isLevelRange ? " *" : "  ")
-                            << " | I32: " << std::setw(6) << val32 << "\n";
-                    }
-                    LOG_INFO(oss.str());
-                }
-            }
-
-            const std::size_t titleIndex = i - kSongIdOffsetFromTitle;
-            // ... (以降の処理はそのまま)
-            const char *titlePtr = reinterpret_cast<const char *>(&buffer[titleIndex]);
-
-            if (titlePtr[0] != '\0' && static_cast<unsigned char>(titlePtr[0]) >= 0x20)
-            {
-                std::size_t strLen = 0;
-                bool isValidString = true;
-
-                // 曲名の最大長を 48文字 に制限（隣のデータへのみこみを防止）
-                while (strLen < 48 && titleIndex + strLen < actualScanSize)
-                {
-                    unsigned char c = static_cast<unsigned char>(titlePtr[strLen]);
-                    if (c == '\0')
-                        break;
-
-                    // 制御文字、タブ、バックスラッシュ、その他の不審なバイナリが含まれている場合は即座に無効とする
-                    if (c < 0x20 || c == '\t' || c == '\\' || c == 0x7F)
-                    {
-                        isValidString = false;
-                        break;
-                    }
-                    ++strLen;
-                }
-
-                // 文字列長が 2文字以上 48文字未満 の場合のみ採用
-                if (isValidString && strLen >= 2 && strLen < 48)
-                {
-                    std::string title(titlePtr, strLen);
-
-                    if (musicMap_.find(songId) == musicMap_.end())
-                    {
-                        musicMap_[songId] = title;
-                    }
-                }
-            }
+            tableStartRva = prevRva;
+            backwardCount++;
+        }
+        else
+        {
+            break;
         }
     }
 
-    LOG_INFO("Successfully loaded " + std::to_string(musicMap_.size()) + " valid song title entries.");
-    LOG_INFO("======== MUSIC TABLE MAP BUILDING END ========");
+    LOG_INFO("Table Start RVA identified at: 0x" + toHex(tableStartRva) + " (Backtracked " + std::to_string(backwardCount) + " entries)");
+
+    std::size_t currentRva = tableStartRva;
+    int loadedCount = 0;
+
+    while (currentRva + ENTRY_SIZE <= safeScanSize)
+    {
+        const char *titlePtr = reinterpret_cast<const char *>(&cachedBuffer_[currentRva + TITLE_OFFSET]);
+        const char *genrePtr = reinterpret_cast<const char *>(&cachedBuffer_[currentRva + GENRE_OFFSET]);
+        const char *artistPtr = reinterpret_cast<const char *>(&cachedBuffer_[currentRva + ARTIST_OFFSET]);
+
+        std::string title(titlePtr, strnlen(titlePtr, 63));
+        std::string genre(genrePtr, strnlen(genrePtr, 63));
+        std::string artist(artistPtr, strnlen(artistPtr, 63));
+
+        std::int32_t songId = 0;
+        std::memcpy(&songId, &cachedBuffer_[currentRva + ID_OFFSET], sizeof(std::int32_t));
+
+        // タイトルが空、またはIDが異常値なら終了
+        if (songId <= 0 || songId > 200000)
+        {
+            // 途中に空きスロットがある可能性も考慮して、少し先を見るかここで終了するか
+            // 基本は連続しているため終了
+            break;
+        }
+
+        // ノーツ取得
+        ChartNotes notes{};
+        auto readNote = [&](std::size_t relBytes) -> int
+        {
+            std::int32_t val = 0;
+            std::size_t pos = currentRva + NOTES_OFFSET + relBytes;
+            if (pos + sizeof(std::int32_t) <= safeScanSize)
+            {
+                std::memcpy(&val, &cachedBuffer_[pos], sizeof(std::int32_t));
+            }
+            return (val >= 0 && val < 10000) ? static_cast<int>(val) : 0;
+        };
+
+        notes.sp_beginner = readNote(0);
+        notes.sp_normal = readNote(4);
+        notes.sp_hyper = readNote(8);
+        notes.sp_another = readNote(12);
+        notes.sp_leggendaria = readNote(16);
+        notes.dp_normal = readNote(24);
+        notes.dp_hyper = readNote(28);
+        notes.dp_another = readNote(32);
+        notes.dp_leggendaria = readNote(36);
+
+        // 各マップへ登録
+        musicMap_[songId] = title;
+        notesMap_[songId] = notes;
+        titleMap_[songId] = title;
+        genreMap_[songId] = genre;
+        artistMap_[songId] = artist;
+
+        loadedCount++;
+        currentRva += ENTRY_SIZE;
+    }
+
+    LOG_INFO("Successfully loaded " + std::to_string(loadedCount) + " songs.");
+    LOG_INFO("======== MUSIC TABLE BUILDER END ========");
 
     return !musicMap_.empty();
 }
 
-std::string MusicTableReader::getSongTitle(std::int32_t songId) const
+ChartNotes MusicTableReader::getChartNotes(std::int32_t songId) const
 {
-    auto it = musicMap_.find(songId);
-    if (it != musicMap_.end())
+    // 1. まず通常のマップから検索
+    auto it = notesMap_.find(songId);
+    if (it != notesMap_.end())
     {
         return it->second;
     }
-    return "ID:" + std::to_string(songId);
+
+    if (cachedBuffer_.empty())
+    {
+        return ChartNotes{};
+    }
+
+    const std::size_t ENTRY_SIZE = 1840;
+    const std::size_t ID_OFFSET = 1200;
+
+    // 2. バッファから該当する Song ID を持つ構造体の位置（rva）を探す
+    for (std::size_t rva = 0; rva + ENTRY_SIZE <= cachedBuffer_.size(); rva += 4)
+    {
+        std::int32_t currentId = 0;
+        std::size_t idPos = rva + ID_OFFSET;
+        if (idPos + sizeof(std::int32_t) <= cachedBuffer_.size())
+        {
+            std::memcpy(&currentId, &cachedBuffer_[idPos], sizeof(std::int32_t));
+            if (currentId == songId)
+            {
+                ChartNotes fallbackNotes{};
+
+                // 指定オフセットから int32 を安全に読み込むヘルパー
+                auto readRawInt32 = [&](std::size_t pos) -> int
+                {
+                    std::int32_t val = 0;
+                    if (pos + sizeof(std::int32_t) <= cachedBuffer_.size())
+                    {
+                        std::memcpy(&val, &cachedBuffer_[pos], sizeof(std::int32_t));
+                    }
+                    return (val > 0 && val < 10000) ? static_cast<int>(val) : 0;
+                };
+
+                // まずは基本位置 (+624) で試す
+                fallbackNotes.sp_beginner = readRawInt32(rva + 624 + 0);
+                fallbackNotes.sp_normal = readRawInt32(rva + 624 + 4);
+                fallbackNotes.sp_hyper = readRawInt32(rva + 624 + 8);
+                fallbackNotes.sp_another = readRawInt32(rva + 624 + 12);
+                fallbackNotes.sp_leggendaria = readRawInt32(rva + 624 + 16);
+                fallbackNotes.dp_normal = readRawInt32(rva + 624 + 24);
+                fallbackNotes.dp_hyper = readRawInt32(rva + 624 + 28);
+                fallbackNotes.dp_another = readRawInt32(rva + 624 + 32);
+                fallbackNotes.dp_leggendaria = readRawInt32(rva + 624 + 36);
+
+                // もし基本位置で有効なノーツが取れなかった場合（初期曲などのオフセット違い対策）
+                if (fallbackNotes.sp_normal == 0 && fallbackNotes.sp_hyper == 0 && fallbackNotes.sp_another == 0)
+                {
+                    // 構造体内部 (+550 ～ +700) を直接スキャンして、連続する有効なノーツ数を探す
+                    for (std::size_t offset = 550; offset <= 700; offset += 4)
+                    {
+                        int n1 = readRawInt32(rva + offset + 4);  // SPN想定
+                        int n2 = readRawInt32(rva + offset + 8);  // SPH想定
+                        int n3 = readRawInt32(rva + offset + 12); // SPA想定
+
+                        // 妥当なノーツ数（例: 20〜4000）が並んでいればそれを採用
+                        if (n1 >= 20 && n2 >= 20 && n3 >= 20)
+                        {
+                            fallbackNotes.sp_normal = n1;
+                            fallbackNotes.sp_hyper = n2;
+                            fallbackNotes.sp_another = n3;
+                            fallbackNotes.dp_normal = readRawInt32(rva + offset + 24);
+                            fallbackNotes.dp_hyper = readRawInt32(rva + offset + 28);
+                            fallbackNotes.dp_another = readRawInt32(rva + offset + 32);
+                            break;
+                        }
+                    }
+                }
+
+                LOG_ERROR("Fallback resolved Song ID " + std::to_string(songId) +
+                          " -> SPN:" + std::to_string(fallbackNotes.sp_normal) +
+                          " SPH:" + std::to_string(fallbackNotes.sp_hyper) +
+                          " SPA:" + std::to_string(fallbackNotes.sp_another));
+
+                return fallbackNotes;
+            }
+        }
+    }
+
+    return ChartNotes{};
 }
 
 bool MusicTableReader::exportToTsv(const std::string &filePath) const
@@ -168,3 +258,74 @@ bool MusicTableReader::exportToTsv(const std::string &filePath) const
     return true;
 }
 
+std::string MusicTableReader::getTitle(std::int32_t songId) const
+{
+    auto it = titleMap_.find(songId);
+    if (it != titleMap_.end())
+        return it->second;
+
+    return "";
+}
+
+std::string MusicTableReader::getGenre(std::int32_t songId) const
+{
+    auto it = genreMap_.find(songId);
+    if (it != genreMap_.end())
+        return it->second;
+    return "";
+}
+
+std::string MusicTableReader::getArtist(std::int32_t songId) const
+{
+    auto it = artistMap_.find(songId);
+    if (it != artistMap_.end())
+        return it->second;
+    return "";
+}
+
+void MusicTableReader::debugInspectSong(std::int32_t targetSongId) const
+{
+    LOG_INFO("======== SCAN UTF-16 STRINGS IN RECORD FOR 'SMALLEST' ========");
+
+    std::string keyword = "SMALLEST";
+    for (std::size_t rva = 0; rva + keyword.size() <= cachedBuffer_.size(); ++rva)
+    {
+        if (std::memcmp(&cachedBuffer_[rva], keyword.data(), keyword.size()) == 0)
+        {
+            LOG_INFO("True Start RVA: 0x" + toHex(rva));
+
+            // 0 から 1200 の間を 2バイト刻みで走査し、UTF-16LE文字列を抽出する
+            for (std::size_t offset = 0; offset < 1200; offset += 2)
+            {
+                const wchar_t* wptr = reinterpret_cast<const wchar_t*>(&cachedBuffer_[rva + offset]);
+                
+                // 妥当な長さのワイド文字列をチェック (例: 2文字以上、50文字以下)
+                std::size_t wlen = 0;
+                while (wlen < 60 && offset + (wlen + 1) * sizeof(wchar_t) <= 1200)
+                {
+                    wchar_t wc = wptr[wlen];
+                    if (wc == L'\0') break;
+                    // 制御文字などを除外
+                    if (wc < 32 && wc != 9 && wc != 10 && wc != 13) break;
+                    wlen++;
+                }
+
+                if (wlen >= 2)
+                {
+                    // std::wstring から std::string への簡易変換（英数字やASCII中心の確認用）
+                    std::string asciiFallback;
+                    for (std::size_t i = 0; i < wlen; ++i)
+                    {
+                        wchar_t wc = wptr[i];
+                        if (wc < 128) asciiFallback.push_back(static_cast<char>(wc));
+                        else asciiFallback.push_back('?');
+                    }
+
+                    LOG_INFO("  [+ " + std::to_string(offset) + "] (UTF-16 len=" + std::to_string(wlen) + ") -> ASCII preview: \"" + asciiFallback + "\"");
+                }
+            }
+            break;
+        }
+    }
+    LOG_INFO("===============================================================");
+}

@@ -605,8 +605,8 @@ int main()
             LOG_INFO(
                 "SongList is not readable yet. Retrying...");
 
-            std::this_thread::sleep_for(
-                std::chrono::seconds(2));
+            // std::this_thread::sleep_for(
+            //     std::chrono::seconds());
 
             continue;
         }
@@ -730,8 +730,8 @@ int main()
         LOG_INFO(
             "UnlockData is not fully loaded yet.");
 
-        std::this_thread::sleep_for(
-            std::chrono::seconds(2));
+        // std::this_thread::sleep_for(
+        //     std::chrono::seconds(30));
     }
 
     /*
@@ -993,12 +993,6 @@ int main()
     LOG_INFO(
         "######## SCORE MAP ENTRY CANDIDATE END ########");
 
-    LOG_INFO(
-        "######## SCORE MAP TARGET SEARCH START ########");
-
-    LOG_INFO(
-        "######## SCORE MAP TARGET SEARCH END ########");
-
     LOG_INFO("======== SCORE MAP FULL SCAN START ========");
 
     if (!scoreMapReader.scanAllScoreRecords(searchedDataMap.rva))
@@ -1009,42 +1003,25 @@ int main()
 
     LOG_INFO("======== SCORE MAP FULL SCAN END ========");
 
-    LOG_INFO("######## DETAILED RECORD DUMP TEST START ########");
-
-    // 確定している 0x998B5CE0 (30080, diff=0) の詳細ダンプ
-    scoreMapReader.dumpScoreRecordDetailed(0x998B5CE0);
-
-    LOG_INFO("######## DETAILED RECORD DUMP TEST END ########");
-
-    LOG_INFO("######## POINTER TARGET DUMP TEST START ########");
-
-    // 先ほど特定した 30080 (diff=0) のレコードアドレスを指定
-    scoreMapReader.dumpPointerTargets(0x998B5CE0);
-
-    LOG_INFO("######## POINTER TARGET DUMP TEST END ########");
-
-    LOG_INFO("######## WIDE SCAN FOR 19002 START ########");
-
-    // 19002 (旧曲) のレコードがメモリのどこかに存在するかモジュール全域をスキャン
-    std::uintptr_t hitAddr = scoreMapReader.scanMemoryForSongId(19002);
-
-    if (hitAddr != 0)
-    {
-        LOG_INFO("Target 19002 was found in memory at: " + toHex(hitAddr));
-    }
-    else
-    {
-        LOG_ERROR("Target 19002 was NOT found in module memory.");
-    }
-
-    LOG_INFO("######## WIDE SCAN FOR 19002 END ########");
-
     LOG_INFO("######## EXPORT TO TRACKER TSV START ########");
 
     Tracker tracker;
     std::string tsvFileName = "tracker.tsv";
 
-    if (scoreMapReader.dumpAllRecordsToTracker(searchedDataMap.rva, tracker, tsvFileName))
+    MusicTableReader musicReader(memoryReader, module.baseAddress(), 74874880);
+
+    LOG_INFO("Building Music Table Map...");
+    if (!musicReader.scanAndBuildMusicMap(0, 74874880))
+    {
+        LOG_ERROR("Failed to scan and build music map. Notes and titles will not be available.");
+    }
+    else
+    {
+        musicReader.debugInspectSong(26110);
+    }
+
+    // 3. スコアマップのダンプ実行
+    if (scoreMapReader.dumpAllRecordsToTracker(searchedDataMap.rva, tracker, tsvFileName, musicReader))
     {
         LOG_INFO("Successfully generated " + tsvFileName);
     }
@@ -1054,21 +1031,6 @@ int main()
     }
 
     LOG_INFO("######## EXPORT TO TRACKER TSV END ########");
-
-    // 1. MusicTableReader の作成とマップ構築
-    MusicTableReader musicReader(memoryReader, module.baseAddress(), 74874880);
-
-    // BroGamer (RVA 0x33AA790) の周辺メモリ領域を一括スキャン
-    if (musicReader.scanAndBuildMusicMap(0x2000000, 0x2000000))
-    {
-        // 検証用: 取得できた曲名マップを TSV に出力
-        musicReader.exportToTsv("music_map.tsv");
-
-        // 動作確認テスト
-        LOG_INFO("Song 24080: " + musicReader.getSongTitle(24080)); // BroGamer
-        LOG_INFO("Song 28079: " + musicReader.getSongTitle(28079)); // Chewingood!!!
-        LOG_INFO("Song 80001: " + musicReader.getSongTitle(80001)); // 3y3s(Long ver.)
-    }
 
     return 0;
 

@@ -22,12 +22,19 @@ struct PlayResult
     std::int32_t bad = 0;
     std::int32_t poor = 0;
 
+    int notes = 0;
+    int rating = 0;
+
     std::int32_t comboBreak = 0;
     std::int32_t fast = 0;
     std::int32_t slow = 0;
 
     std::int32_t exScore = 0;
     std::int32_t missCount = 0;
+
+    std::string title;
+    std::string genre;
+    std::string artist;
 
     bool missCountValid = false;
     bool prematureEnd = false;

@@ -1,5 +1,7 @@
 #include "ScoreMapReader.h"
+#include "MusicTableReader.h"
 #include "Logger.h"
+#include "ChartNotes.h"
 
 #include <string>
 #include <cstddef>
@@ -56,7 +58,125 @@ ScoreMapReader::ScoreMapReader(
       module_(module)
 {
 }
+// ★ extractNotes 関数を関数の前（スコープ上）で定義
+static int extractNotes(const ChartNotes &notes, std::uint32_t diff, JudgePlayType playType)
+{
+    if (playType == JudgePlayType::P1 || playType == JudgePlayType::P2)
+    { // SP
+        switch (diff)
+        {
+        case 0:
+            return notes.sp_beginner;
+        case 1:
+            return notes.sp_normal;
+        case 2:
+            return notes.sp_hyper;
+        case 3:
+            return notes.sp_another;
+        case 4:
+            return notes.sp_leggendaria;
+        default:
+            return 0;
+        }
+    }
+    else
+    { // DP
+        switch (diff)
+        {
+        case 1:
+            return notes.dp_normal;
+        case 2:
+            return notes.dp_hyper;
+        case 3:
+            return notes.dp_another;
+        case 4:
+            return notes.dp_leggendaria;
+        default:
+            return 0;
+        }
+    }
+}
 
+// ★ extractRating 関数を定義
+static int extractRating(const ChartRatings &ratings, std::uint32_t diff, JudgePlayType playType)
+{
+    if (playType == JudgePlayType::P1)
+    { // SP
+        switch (diff)
+        {
+        case 0:
+            return ratings.sp_beginner;
+        case 1:
+            return ratings.sp_normal;
+        case 2:
+            return ratings.sp_hyper;
+        case 3:
+            return ratings.sp_another;
+        case 4:
+            return ratings.sp_leggendaria;
+        default:
+            return 0;
+        }
+    }
+    else
+    { // DP
+        switch (diff)
+        {
+        case 1:
+            return ratings.dp_normal;
+        case 2:
+            return ratings.dp_hyper;
+        case 3:
+            return ratings.dp_another;
+        case 4:
+            return ratings.dp_leggendaria;
+        default:
+            return 0;
+        }
+    }
+}
+
+// ScoreMapReader.cpp の上部（またはヘルパー領域）に追加
+static int extractNotesFromChartNotes(const ChartNotes &notes, std::uint32_t diff, JudgePlayType playType)
+{
+    // playType が DP (1) の場合、または diff が DP 範囲 (6~9) の場合
+    bool isDP = (playType == JudgePlayType::DP);
+
+    if (!isDP)
+    {
+        switch (diff)
+        {
+        case 0:
+            return notes.sp_beginner;
+        case 1:
+            return notes.sp_normal;
+        case 2:
+            return notes.sp_hyper;
+        case 3:
+            return notes.sp_another;
+        case 4:
+            return notes.sp_leggendaria;
+        default:
+            return 0;
+        }
+    }
+    else
+    {
+        switch (diff)
+        {
+        case 1:
+            return notes.dp_normal;
+        case 2:
+            return notes.dp_hyper;
+        case 3:
+            return notes.dp_another;
+        case 4:
+            return notes.dp_leggendaria;
+        default:
+            return 0;
+        }
+    }
+}
 bool ScoreMapReader::dumpDataMapNeighborhood(
     std::uintptr_t dataMapRva) const
 {
@@ -187,7 +307,7 @@ bool ScoreMapReader::dumpScoreMapStart(
         //     << " : "
         //     << toHex64(value);
 
-        LOG_INFO(message.str());
+        // LOG_INFO(message.str());
     }
 
     LOG_INFO(
@@ -897,14 +1017,14 @@ bool ScoreMapReader::scanMemoryForSongId(std::uint32_t targetSongId) const
 bool ScoreMapReader::dumpAllRecordsToTracker(
     std::uintptr_t dataMapRva,
     Tracker &tracker,
-    const std::string &tsvFilePath) const
+    const std::string &tsvFilePath,
+    const MusicTableReader &musicTableReader) const
 {
     LOG_INFO("======== DUMP ALL RECORDS TO TRACKER START ========");
 
     const std::uintptr_t dataMapAddress = module_.baseAddress() + dataMapRva;
     std::uintptr_t rootAddress = 0;
 
-    // findAndDumpRecord と同じく DataMap からルートノードアドレスを取得
     if (!memoryReader_.read(dataMapAddress, &rootAddress, sizeof(rootAddress)) || rootAddress == 0)
     {
         LOG_ERROR("Failed to read rootAddress from DataMap.");
@@ -918,7 +1038,6 @@ bool ScoreMapReader::dumpAllRecordsToTracker(
 
     std::uintptr_t current = rootAddress;
 
-    // findAndDumpRecord と全く同じ順序（中順走査 / In-order traversal）で二分木を全走査
     while (current != 0 || !stack.empty())
     {
         while (current != 0 && visited.find(current) == visited.end())
@@ -940,28 +1059,35 @@ bool ScoreMapReader::dumpAllRecordsToTracker(
         current = stack.back();
         stack.pop_back();
 
-        // 64バイトを一括読み込み
         std::vector<std::uint8_t> buf(recordSize);
         if (memoryReader_.read(current, buf.data(), recordSize))
         {
-            // フィールドデータの解析
-            std::uint32_t diff      = *reinterpret_cast<const std::uint32_t *>(&buf[0x10]);
-            std::uint32_t songId    = *reinterpret_cast<const std::uint32_t *>(&buf[0x14]);
-            std::uint32_t playType  = *reinterpret_cast<const std::uint32_t *>(&buf[0x18]); // 0: SP, 1: DP
-            std::uint32_t exScore   = *reinterpret_cast<const std::uint32_t *>(&buf[0x20]);
+
+            std::uint32_t diff = *reinterpret_cast<const std::uint32_t *>(&buf[0x10]);
+            std::uint32_t songId = *reinterpret_cast<const std::uint32_t *>(&buf[0x14]);
+            std::uint32_t playType = *reinterpret_cast<const std::uint32_t *>(&buf[0x18]); // 0: SP, 1: DP
+            std::uint32_t exScore = *reinterpret_cast<const std::uint32_t *>(&buf[0x20]);
             std::uint32_t missCount = *reinterpret_cast<const std::uint32_t *>(&buf[0x24]);
             std::uint32_t clearLamp = *reinterpret_cast<const std::uint32_t *>(&buf[0x30]);
 
-            // 有効な楽曲レコードか判定
+            // 有効な楽曲レコードか判定のブロック内
             if (songId != 0 && diff <= 5)
             {
-                // 0 -> P1(SP), 1 -> DP
                 JudgePlayType pType = (playType == 1) ? JudgePlayType::DP : JudgePlayType::P1;
 
                 PlayResult result{};
                 result.songId = static_cast<std::int32_t>(songId);
                 result.difficulty = static_cast<std::int32_t>(diff);
                 result.playType = pType;
+
+                // ★ MusicTable からノーツ数だけでなく、文字列データも取得して割り当て
+                ChartNotes chartNotes = musicTableReader.getChartNotes(result.songId);
+                result.notes = extractNotes(chartNotes, diff, pType);
+
+                result.title = musicTableReader.getTitle(result.songId);
+                result.genre = musicTableReader.getGenre(result.songId);
+                result.artist = musicTableReader.getArtist(result.songId);
+
                 result.clearLamp = static_cast<std::uint8_t>(clearLamp);
                 result.exScore = static_cast<std::int32_t>(exScore);
 
@@ -981,7 +1107,6 @@ bool ScoreMapReader::dumpAllRecordsToTracker(
             }
         }
 
-        // 右の子ノードへ移動
         std::uintptr_t rightChild = 0;
         if (!memoryReader_.read(current + 0x08, &rightChild, sizeof(rightChild)))
         {
