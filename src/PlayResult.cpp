@@ -152,57 +152,20 @@ PlayResult createPlayResult(
     return result;
 }
 
-std::string judgePlayTypeToString(
+std::string judgePlayTypeToInt(
     JudgePlayType playType)
 {
     switch (playType)
     {
     case JudgePlayType::P1:
-        return "P1";
+        return "0";
 
     case JudgePlayType::P2:
-        return "P2";
+        return "0";
 
     case JudgePlayType::DP:
-        return "DP";
+        return "1";
     }
 
     return "UNKNOWN";
-}
-
-std::string clearLampToString(
-    std::int32_t clearLamp)
-{
-    switch (clearLamp)
-    {
-    case 0:
-        return "NO PLAY";
-
-    case 1:
-        return "FAILED";
-
-    case 2:
-        return "ASSIST CLEAR";
-
-    case 3:
-        return "EASY CLEAR";
-
-    case 4:
-        return "CLEAR";
-
-    case 5:
-        return "HARD CLEAR";
-
-    case 6:
-        return "EX HARD CLEAR";
-
-    case 7:
-        return "FULL COMBO";
-
-    case 8:
-        return "PERFECT FULL COMBO";
-
-    default:
-        return "UNKNOWN";
-    }
 }

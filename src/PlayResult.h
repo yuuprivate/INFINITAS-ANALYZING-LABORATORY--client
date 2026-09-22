@@ -33,8 +33,6 @@ struct PlayResult
     std::int32_t missCount = 0;
 
     std::string title;
-    std::string genre;
-    std::string artist;
 
     bool missCountValid = false;
     bool prematureEnd = false;
@@ -46,8 +44,5 @@ PlayResult createPlayResult(
     const JudgeSnapshot &judge,
     const PlayDataSnapshot &playData);
 
-std::string judgePlayTypeToString(
+std::string judgePlayTypeToInt(
     JudgePlayType playType);
-
-std::string clearLampToString(
-    std::int32_t clearLamp);

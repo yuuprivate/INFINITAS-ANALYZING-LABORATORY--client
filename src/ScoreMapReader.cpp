@@ -1085,8 +1085,6 @@ bool ScoreMapReader::dumpAllRecordsToTracker(
                 result.notes = extractNotes(chartNotes, diff, pType);
 
                 result.title = musicTableReader.getTitle(result.songId);
-                result.genre = musicTableReader.getGenre(result.songId);
-                result.artist = musicTableReader.getArtist(result.songId);
 
                 result.clearLamp = static_cast<std::uint8_t>(clearLamp);
                 result.exScore = static_cast<std::int32_t>(exScore);

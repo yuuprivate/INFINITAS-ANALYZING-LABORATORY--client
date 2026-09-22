@@ -13,8 +13,6 @@ class MusicTableReader;
 struct TrackerEntry
 {
     std::string title;
-    std::string genre;
-    std::string artist;
     
     std::int32_t bestClearLamp = 0;
     std::int32_t bestExScore = 0;

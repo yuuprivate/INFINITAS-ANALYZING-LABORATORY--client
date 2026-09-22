@@ -46,13 +46,9 @@ bool MusicTableReader::scanAndBuildMusicMap(std::uintptr_t searchStartRva, std::
     musicMap_.clear();
     notesMap_.clear();
     titleMap_.clear();
-    genreMap_.clear();
-    artistMap_.clear();
 
     const std::size_t ENTRY_SIZE = 1840; // 0x730
     const std::size_t TITLE_OFFSET = 0;
-    const std::size_t GENRE_OFFSET = 64;
-    const std::size_t ARTIST_OFFSET = 192;
     const std::size_t NOTES_OFFSET = 624;
     const std::size_t ID_OFFSET = 1200;
 
@@ -92,12 +88,8 @@ bool MusicTableReader::scanAndBuildMusicMap(std::uintptr_t searchStartRva, std::
     while (currentRva + ENTRY_SIZE <= safeScanSize)
     {
         const char *titlePtr = reinterpret_cast<const char *>(&cachedBuffer_[currentRva + TITLE_OFFSET]);
-        const char *genrePtr = reinterpret_cast<const char *>(&cachedBuffer_[currentRva + GENRE_OFFSET]);
-        const char *artistPtr = reinterpret_cast<const char *>(&cachedBuffer_[currentRva + ARTIST_OFFSET]);
 
         std::string title(titlePtr, strnlen(titlePtr, 63));
-        std::string genre(genrePtr, strnlen(genrePtr, 63));
-        std::string artist(artistPtr, strnlen(artistPtr, 63));
 
         std::int32_t songId = 0;
         std::memcpy(&songId, &cachedBuffer_[currentRva + ID_OFFSET], sizeof(std::int32_t));
@@ -137,8 +129,6 @@ bool MusicTableReader::scanAndBuildMusicMap(std::uintptr_t searchStartRva, std::
         musicMap_[songId] = title;
         notesMap_[songId] = notes;
         titleMap_[songId] = title;
-        genreMap_[songId] = genre;
-        artistMap_[songId] = artist;
 
         loadedCount++;
         currentRva += ENTRY_SIZE;
@@ -264,22 +254,6 @@ std::string MusicTableReader::getTitle(std::int32_t songId) const
     if (it != titleMap_.end())
         return it->second;
 
-    return "";
-}
-
-std::string MusicTableReader::getGenre(std::int32_t songId) const
-{
-    auto it = genreMap_.find(songId);
-    if (it != genreMap_.end())
-        return it->second;
-    return "";
-}
-
-std::string MusicTableReader::getArtist(std::int32_t songId) const
-{
-    auto it = artistMap_.find(songId);
-    if (it != artistMap_.end())
-        return it->second;
     return "";
 }
 

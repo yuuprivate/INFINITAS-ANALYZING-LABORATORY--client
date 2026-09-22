@@ -16,8 +16,6 @@ public:
     bool scanAndBuildMusicMap(std::uintptr_t searchStartRva = 0x3000000, std::size_t scanSize = 0x1000000);
 
     std::string getTitle(std::int32_t songId) const;
-    std::string getGenre(std::int32_t songId) const;
-    std::string getArtist(std::int32_t songId) const;
 
     const std::unordered_map<std::int32_t, std::string> &getMusicMap() const { return musicMap_; }
 
@@ -45,8 +43,6 @@ private:
     static constexpr std::intptr_t kSongIdOffsetFromTitle = 1200;
 
     std::unordered_map<std::int32_t, std::string> titleMap_;
-    std::unordered_map<std::int32_t, std::string> genreMap_;
-    std::unordered_map<std::int32_t, std::string> artistMap_;
 
     std::unordered_map<std::int32_t, std::string> musicMap_;
     std::unordered_map<std::int32_t, ChartNotes> notesMap_;

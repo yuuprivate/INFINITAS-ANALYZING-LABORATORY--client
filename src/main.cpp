@@ -1015,10 +1015,10 @@ int main()
     {
         LOG_ERROR("Failed to scan and build music map. Notes and titles will not be available.");
     }
-    else
-    {
-        musicReader.debugInspectSong(26110);
-    }
+    // else
+    // {
+    //     musicReader.debugInspectSong(26110);
+    // }
 
     // 3. スコアマップのダンプ実行
     if (scoreMapReader.dumpAllRecordsToTracker(searchedDataMap.rva, tracker, tsvFileName, musicReader))
