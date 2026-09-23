@@ -46,6 +46,9 @@
     <ClCompile Include="D:\recommendsite_client\project_client\src\PlayResult.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\recommendsite_client\project_client\src\PlayData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\recommendsite_client\project_client\src\CurrentSong.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

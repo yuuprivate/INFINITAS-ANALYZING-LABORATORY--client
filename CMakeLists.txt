@@ -21,6 +21,7 @@ add_executable(project_client
     src/ScoreMapReader.cpp
     src/Tracker.cpp
     src/PlayResult.cpp
+    src/PlayData.cpp
     src/CurrentSong.cpp
     src/MusicTableReader.cpp
 )

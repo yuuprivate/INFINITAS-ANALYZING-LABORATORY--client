@@ -38,14 +38,6 @@ namespace
             judge.p2MeasureEnd != 0;
     }
 
-    /*
-     * RefluxのPFC判定と同じ考え方。
-     *
-     * Good / Bad / Poor が0なら
-     * FCをPFCへ昇格できる候補とする。
-     *
-     * 実際のclearLampがFCの場合だけ適用する。
-     */
     std::int32_t normalizeClearLamp(
         const JudgeSnapshot &judge,
         std::int32_t clearLamp)
@@ -134,15 +126,6 @@ PlayResult createPlayResult(
     result.prematureEnd =
         isPrematureEnd(judge);
 
-    /*
-     * 現段階ではPlaySettingsのassist値をまだ
-     * PlayResultへ取り込んでいない。
-     *
-     * そのため、Refluxと完全同等の
-     * MissCountValid判定はまだ行わない。
-     *
-     * とりあえず途中終了だけ除外する。
-     */
     result.missCountValid =
         !result.prematureEnd;
 

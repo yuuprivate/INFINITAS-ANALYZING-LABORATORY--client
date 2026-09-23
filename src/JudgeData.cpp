@@ -61,9 +61,6 @@ bool JudgeDataReader::read(
     snapshot.p1MeasureEnd = values[16];
     snapshot.p2MeasureEnd = values[17];
 
-    /*
-     * Refluxと同じ考え方でP1/P2/DPを判定。
-     */
     const bool p1HasJudge =
         snapshot.p1Pgreat +
             snapshot.p1Great +

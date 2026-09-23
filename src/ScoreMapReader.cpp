@@ -393,19 +393,19 @@ bool ScoreMapReader::dumpScoreMapEntryCandidates(
 
         ++candidateCount;
 
-        LOG_INFO(
-            std::string("bucket[") +
-            std::to_string(bucket) +
-            "] -> " +
-            toHex64(entryAddress));
+        // LOG_INFO(
+        //     std::string("bucket[") +
+        //     std::to_string(bucket) +
+        //     "] -> " +
+        //     toHex64(entryAddress));
 
-        if (candidateCount >= 20)
-        {
-            LOG_INFO(
-                "最初の20件の候補のみ表示します。");
+        // if (candidateCount >= 20)
+        // {
+        //     LOG_INFO(
+        //         "最初の20件の候補のみ表示します。");
 
-            break;
-        }
+        //     break;
+        // }
     }
 
     LOG_INFO(
@@ -456,18 +456,11 @@ bool ScoreMapReader::dumpScoreMapEntry(
         return false;
     }
 
-    LOG_INFO(
-        std::string("bucket[") +
-        std::to_string(bucketIndex) +
-        "]");
+    // LOG_INFO(std::string("bucket[") + std::to_string(bucketIndex) + "]");
 
-    LOG_INFO(
-        std::string("  bucket address: ") +
-        toHex(bucketAddress));
+    // LOG_INFO(std::string("  bucket address: ") + toHex(bucketAddress));
 
-    LOG_INFO(
-        std::string("  entry address: ") +
-        toHex64(entryAddress));
+    // LOG_INFO(std::string("  entry address: ") + toHex64(entryAddress));
 
     if (entryAddress == 0)
     {
@@ -477,13 +470,9 @@ bool ScoreMapReader::dumpScoreMapEntry(
 
     constexpr std::size_t dumpSize = 0x100;
 
-    LOG_INFO(
-        "===== ScoreMap Entry Raw Dump =====");
+    // LOG_INFO("===== ScoreMap Entry Raw Dump =====");
 
-    for (
-        std::size_t offset = 0;
-        offset < dumpSize;
-        offset += sizeof(std::uint64_t))
+    for (std::size_t offset = 0; offset < dumpSize; offset += sizeof(std::uint64_t))
     {
         std::uint64_t value = 0;
 
@@ -492,9 +481,7 @@ bool ScoreMapReader::dumpScoreMapEntry(
                 value))
         {
             LOG_ERROR(
-                std::string(
-                    "ScoreMap entryの読み取りに失敗しました: ") +
-                toHex(entryAddress + offset));
+                std::string("ScoreMap entryの読み取りに失敗しました: ") + toHex(entryAddress + offset));
 
             continue;
         }
@@ -511,11 +498,10 @@ bool ScoreMapReader::dumpScoreMapEntry(
             << " : "
             << toHex64(value);
 
-        LOG_INFO(message.str());
+        // LOG_INFO(message.str());
     }
 
-    LOG_INFO(
-        "===== ScoreMap Entry Raw Dump End =====");
+    // LOG_INFO("===== ScoreMap Entry Raw Dump End =====");
 
     return true;
 }
@@ -856,10 +842,10 @@ bool ScoreMapReader::scanAllScoreRecords(std::uintptr_t dataMapRva) const
         }
     }
 
-    LOG_INFO("======== ScoreMap Record Dump Summary ========");
-    LOG_INFO("Total Valid Records Scanned: " + std::to_string(totalRecordsFound));
-    LOG_INFO("Detected Song ID Range     : " + std::to_string(minSongId) + " ~ " + std::to_string(maxSongId));
-    LOG_INFO("==============================================");
+    // LOG_INFO("======== ScoreMap Record Dump Summary ========");
+    // LOG_INFO("Total Valid Records Scanned: " + std::to_string(totalRecordsFound));
+    // LOG_INFO("Detected Song ID Range     : " + std::to_string(minSongId) + " ~ " + std::to_string(maxSongId));
+    // LOG_INFO("==============================================");
 
     return true;
 }
