@@ -13,7 +13,7 @@ class MusicTableReader;
 struct TrackerEntry
 {
     std::string title;
-    
+
     std::int32_t bestClearLamp = 0;
     std::int32_t bestExScore = 0;
 
@@ -26,7 +26,7 @@ struct TrackerEntry
         JudgePlayType::P1;
 
     std::int32_t notes = 0;
-    
+
     std::chrono::system_clock::time_point lastPlayedAt{};
 };
 
@@ -36,13 +36,27 @@ public:
     bool update(
         const PlayResult &result);
 
-    bool writeTsv(
-        const std::string &filePath) const;
+    bool writeJson(
+        const std::string &filePath,
+        const std::string &infinitasId,
+        const std::string &djName,
+        const std::string &nonce) const;
 
     bool appendPlayResultTsv(
         const std::string &filePath,
         const PlayResult &result,
         bool writeHeader) const;
+
+    std::string dumpJsonString(
+        const std::string &infinitasId,
+        const std::string &djName,
+        const std::string &nonce) const;
+
+    std::string dumpSingleResultJsonString(
+        const PlayResult &result, 
+        const std::string &infinitasId, 
+        const std::string &djName, 
+        const std::string &nonce) const;
 
 private:
     using ChartKey = std::tuple<std::int32_t, std::int32_t, JudgePlayType>;

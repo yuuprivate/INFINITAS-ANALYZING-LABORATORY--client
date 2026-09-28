@@ -62,6 +62,11 @@ namespace
             type = OffsetType::DataMap;
             return true;
         }
+        if (normalized == "playerprofile")
+        {
+            type = OffsetType::PlayerProfile;
+            return true;
+        }
 
         return false;
     }
@@ -236,6 +241,9 @@ bool OffsetManager::load(
         case OffsetType::CurrentSong:
             loadedOffsets.currentSong = rva;
             break;
+        case OffsetType::PlayerProfile:
+            loadedOffsets.playerProfile = rva;
+            break;
         }
     }
 
@@ -290,6 +298,9 @@ std::uintptr_t OffsetManager::get(
 
     case OffsetType::CurrentSong:
         return offsets_.currentSong;
+
+    case OffsetType::PlayerProfile:
+        return offsets_.playerProfile;
     }
 
     return 0;
@@ -322,23 +333,19 @@ bool OffsetManager::validate() const
     if (!valid)
     {
         LOG_ERROR(
-            "オフセット定義に不足または不正な値があります。"
-        );
+            "オフセット定義に不足または不正な値があります。");
 
         LOG_ERROR(
-            "Offset definition is incomplete or invalid."
-        );
+            "Offset definition is incomplete or invalid.");
 
         return false;
     }
 
     LOG_INFO(
-        "オフセット定義の検証に成功しました。"
-    );
+        "オフセット定義の検証に成功しました。");
 
     LOG_INFO(
-        "Offset definition validated successfully."
-    );
+        "Offset definition validated successfully.");
 
     return true;
 }

@@ -1,0 +1,53 @@
+{
+    "dj_name": "MUSCLE",
+    "entries": [
+        {
+            "clear_lamp": 1,
+            "difficulty": 3,
+            "ex_score": 696,
+            "level": 0,
+            "miss_count": 0,
+            "play_type": "0",
+            "song_id": 17015
+        },
+        {
+            "clear_lamp": 1,
+            "difficulty": 3,
+            "ex_score": 1155,
+            "level": 0,
+            "miss_count": 0,
+            "play_type": "0",
+            "song_id": 19002
+        },
+        {
+            "clear_lamp": 1,
+            "difficulty": 4,
+            "ex_score": 2543,
+            "level": 0,
+            "miss_count": 0,
+            "play_type": "0",
+            "song_id": 20089
+        },
+        {
+            "clear_lamp": 1,
+            "difficulty": 4,
+            "ex_score": 1533,
+            "level": 0,
+            "miss_count": 0,
+            "play_type": "0",
+            "song_id": 20089
+        },
+        {
+            "clear_lamp": 6,
+            "difficulty": 3,
+            "ex_score": 2241,
+            "level": 0,
+            "miss_count": 11,
+            "play_type": "0",
+            "song_id": 31018
+        }
+    ],
+    "infinitas_id": "C904620745642",
+    "nonce": "a2546eff-eefa-4409-9813-c068014bce9a",
+    "updated_at": "2026-09-28T11:24:57Z"
+}

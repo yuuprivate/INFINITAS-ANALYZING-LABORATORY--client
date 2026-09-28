@@ -46,12 +46,6 @@ public:
     bool scanMemoryForSongId(
         std::uint32_t targetSongId) const;
 
-    bool dumpAllRecordsToTracker(
-        std::uintptr_t dataMapRva,
-        Tracker &tracker,
-        const std::string &tsvFilePath,
-    const MusicTableReader &musicTableReader) const;
-
     bool inspectScoreRecord(
         std::uintptr_t dataMapRva,
         std::uint32_t targetSongId,

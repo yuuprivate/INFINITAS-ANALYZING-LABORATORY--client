@@ -65,74 +65,36 @@ namespace
     }
 }
 
-PlayResult createPlayResult(
-    const JudgeSnapshot &judge,
-    const PlayDataSnapshot &playData)
+PlayResult createPlayResult(const JudgeSnapshot &judge, const PlayDataSnapshot &playData)
 {
-    PlayResult result;
+    PlayResult res{};
 
-    result.songId =
-        playData.songId;
+    // --- メモリから読み取った正確なリザルトデータ (playData) を最優先で設定 ---
+    res.songId      = playData.songId;
+    res.difficulty  = playData.difficulty;
+    res.clearLamp   = playData.clearLamp;
+    res.exScore     = playData.exScore;
+    res.missCount   = playData.missCount;
+    res.pGreat      = playData.pgreat;
+    res.great       = playData.great;
+    
+    // ミスカウントが有効かどうかの判定 (例: 0以上なら有効)
+    res.missCountValid = (playData.missCount >= 0);
 
-    result.difficulty =
-        playData.difficulty;
+    // プレイタイプ (0: SP, 1: DP など) の変換
+    res.playType = (playData.playType == 0) ? JudgePlayType::P1 : JudgePlayType::P2; // 環境に合わせて調整
 
-    result.clearLamp =
-        normalizeClearLamp(
-            judge,
-            playData.clearLamp);
+    // --- JudgeSnapshot (リアルタイムカウント) から補填する値 ---
+    res.good  = judge.p1Good + judge.p2Good;
+    res.bad   = judge.p1Bad + judge.p2Bad;
+    res.poor  = judge.p1Poor + judge.p2Poor;
+    res.fast  = judge.p1Fast + judge.p2Fast;
+    res.slow  = judge.p1Slow + judge.p2Slow;
 
-    result.playType =
-        judge.playType;
+    // タイムスタンプ
+    res.timestamp = std::chrono::system_clock::now();
 
-    result.pGreat =
-        judge.p1Pgreat +
-        judge.p2Pgreat;
-
-    result.great =
-        judge.p1Great +
-        judge.p2Great;
-
-    result.good =
-        judge.p1Good +
-        judge.p2Good;
-
-    result.bad =
-        judge.p1Bad +
-        judge.p2Bad;
-
-    result.poor =
-        judge.p1Poor +
-        judge.p2Poor;
-
-    result.comboBreak =
-        judge.p1ComboBreak +
-        judge.p2ComboBreak;
-
-    result.fast =
-        judge.p1Fast +
-        judge.p2Fast;
-
-    result.slow =
-        judge.p1Slow +
-        judge.p2Slow;
-
-    result.exScore =
-        calculateExScore(judge);
-
-    result.missCount =
-        calculateMissCount(judge);
-
-    result.prematureEnd =
-        isPrematureEnd(judge);
-
-    result.missCountValid =
-        !result.prematureEnd;
-
-    result.timestamp =
-        std::chrono::system_clock::now();
-
-    return result;
+    return res;
 }
 
 std::string judgePlayTypeToInt(

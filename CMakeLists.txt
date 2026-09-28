@@ -24,9 +24,15 @@ add_executable(project_client
     src/PlayData.cpp
     src/CurrentSong.cpp
     src/MusicTableReader.cpp
+    src/PlayerProfileReader.cpp
+    src/Utils.cpp
+    src/HttpClient.cpp
 )
 
 if (MSVC)
     target_compile_options(project_client PRIVATE /utf-8)
     target_compile_definitions(project_client PRIVATE NOMINMAX)
+    target_include_directories(project_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_include_directories(project_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/nlohman)
+    target_link_libraries(project_client PRIVATE ws2_32 wsock32)
 endif()

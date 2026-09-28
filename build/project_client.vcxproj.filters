@@ -55,6 +55,15 @@
     <ClCompile Include="D:\recommendsite_client\project_client\src\MusicTableReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\recommendsite_client\project_client\src\PlayerProfileReader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\recommendsite_client\project_client\src\Utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\recommendsite_client\project_client\src\HttpClient.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="D:\recommendsite_client\project_client\CMakeLists.txt" />
