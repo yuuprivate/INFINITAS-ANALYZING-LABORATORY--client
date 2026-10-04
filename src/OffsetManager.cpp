@@ -62,6 +62,16 @@ namespace
             type = OffsetType::DataMap;
             return true;
         }
+        if (normalized == "playerprofile")
+        {
+            type = OffsetType::PlayerProfile;
+            return true;
+        }
+        if (normalized == "songstate")
+        {
+            type = OffsetType::SongState;
+            return true;
+        }
 
         return false;
     }
@@ -143,7 +153,7 @@ bool OffsetManager::load(
     std::string line;
     bool firstLine = true;
 
-    constexpr std::uintptr_t refluxImageBase =
+    constexpr std::uintptr_t ImageBase =
         0x140000000ULL;
 
     while (std::getline(file, line))
@@ -194,7 +204,7 @@ bool OffsetManager::load(
             continue;
         }
 
-        if (absoluteAddress < refluxImageBase)
+        if (absoluteAddress < ImageBase)
         {
             LOG_ERROR(
                 std::string("不正なアドレスです: ") +
@@ -203,9 +213,8 @@ bool OffsetManager::load(
             continue;
         }
 
-        // Refluxの絶対アドレスをRVAへ変換
         const std::uintptr_t rva =
-            absoluteAddress - refluxImageBase;
+            absoluteAddress - ImageBase;
 
         switch (type)
         {
@@ -235,6 +244,14 @@ bool OffsetManager::load(
 
         case OffsetType::CurrentSong:
             loadedOffsets.currentSong = rva;
+            break;
+
+        case OffsetType::PlayerProfile:
+            loadedOffsets.playerProfile = rva;
+            break;
+        
+            case OffsetType::SongState:
+            loadedOffsets.songState = rva;
             break;
         }
     }
@@ -290,6 +307,12 @@ std::uintptr_t OffsetManager::get(
 
     case OffsetType::CurrentSong:
         return offsets_.currentSong;
+
+    case OffsetType::PlayerProfile:
+        return offsets_.playerProfile;
+
+    case OffsetType::SongState:
+        return offsets_.songState;
     }
 
     return 0;
@@ -317,28 +340,26 @@ bool OffsetManager::validate() const
         offsets_.playData != 0 &&
         offsets_.playSettings != 0 &&
         offsets_.unlockData != 0 &&
-        offsets_.currentSong != 0;
+        offsets_.currentSong != 0 &&
+        offsets_.playerProfile != 0 &&
+        offsets_.songState != 0;
 
     if (!valid)
     {
         LOG_ERROR(
-            "オフセット定義に不足または不正な値があります。"
-        );
+            "オフセット定義に不足または不正な値があります。");
 
         LOG_ERROR(
-            "Offset definition is incomplete or invalid."
-        );
+            "Offset definition is incomplete or invalid.");
 
         return false;
     }
 
     LOG_INFO(
-        "オフセット定義の検証に成功しました。"
-    );
+        "オフセット定義の検証に成功しました。");
 
     LOG_INFO(
-        "Offset definition validated successfully."
-    );
+        "Offset definition validated successfully.");
 
     return true;
 }

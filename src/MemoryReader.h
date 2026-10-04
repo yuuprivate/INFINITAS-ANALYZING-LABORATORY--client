@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <windows.h>
 
 #include "Process.h"
 
@@ -31,7 +32,14 @@ public:
     bool read(
         std::uintptr_t address,
         T& value
-    ) const;
+    ) const
+    {
+        return read(
+            address,
+            static_cast<void*>(&value),
+            sizeof(T)
+        );
+    }
 
 private:
     const Process& process_;
@@ -40,16 +48,3 @@ private:
         DWORD protection
     );
 };
-
-template<typename T>
-bool MemoryReader::read(
-    std::uintptr_t address,
-    T& value
-) const
-{
-    return read(
-        address,
-        &value,
-        sizeof(T)
-    );
-}

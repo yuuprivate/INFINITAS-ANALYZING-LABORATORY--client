@@ -36,19 +36,23 @@ bool Pattern::isValid() const
 }
 
 PatternScanner::PatternScanner(
-    const MemoryReader &memoryReader)
+    const MemoryReader& memoryReader
+)
     : memoryReader_(memoryReader)
 {
     LOG_INFO(
-        "PatternScanner を初期化しました。");
+        "PatternScanner を初期化しました。"
+    );
 
     LOG_INFO(
-        "PatternScanner initialized successfully.");
+        "PatternScanner initialized successfully."
+    );
 }
 
 bool PatternScanner::matchesAt(
-    const std::uint8_t *data,
-    const Pattern &pattern)
+    const std::uint8_t* data,
+    const Pattern& pattern
+)
 {
     if (data == nullptr ||
         !pattern.isValid())
@@ -59,7 +63,8 @@ bool PatternScanner::matchesAt(
     for (
         std::size_t i = 0;
         i < pattern.bytes.size();
-        ++i)
+        ++i
+    )
     {
         const bool compareByte =
             pattern.mask.empty()
@@ -81,9 +86,10 @@ bool PatternScanner::matchesAt(
 }
 
 bool PatternScanner::findFirst(
-    const Module &module,
-    const Pattern &pattern,
-    PatternMatch &match) const
+    const Module& module,
+    const Pattern& pattern,
+    PatternMatch& match
+) const
 {
     match = {};
 
@@ -92,7 +98,8 @@ bool PatternScanner::findFirst(
     if (!findAll(
             module,
             pattern,
-            matches))
+            matches
+        ))
     {
         return false;
     }
@@ -103,19 +110,22 @@ bool PatternScanner::findFirst(
 }
 
 bool PatternScanner::findAll(
-    const Module &module,
-    const Pattern &pattern,
-    std::vector<PatternMatch> &matches) const
+    const Module& module,
+    const Pattern& pattern,
+    std::vector<PatternMatch>& matches
+) const
 {
     matches.clear();
 
     if (!module.isLoaded())
     {
         LOG_ERROR(
-            "モジュールがロードされていません。");
+            "モジュールがロードされていません。"
+        );
 
         LOG_ERROR(
-            "The module has not been loaded.");
+            "The module has not been loaded."
+        );
 
         return false;
     }
@@ -123,10 +133,12 @@ bool PatternScanner::findAll(
     if (!pattern.isValid())
     {
         LOG_ERROR(
-            "無効なPatternが指定されました。");
+            "無効なPatternが指定されました。"
+        );
 
         LOG_ERROR(
-            "An invalid pattern was specified.");
+            "An invalid pattern was specified."
+        );
 
         return false;
     }
@@ -155,14 +167,16 @@ bool PatternScanner::findAll(
             : 0;
 
     std::vector<std::uint8_t> chunkBuffer(
-        chunkSize);
+        chunkSize
+    );
 
     std::vector<std::uint8_t> previousTail;
 
     for (
         std::size_t chunkOffset = 0;
         chunkOffset < searchSize;
-        chunkOffset += chunkSize)
+        chunkOffset += chunkSize
+    )
     {
         const std::size_t remaining =
             searchSize - chunkOffset;
@@ -170,22 +184,26 @@ bool PatternScanner::findAll(
         const std::size_t readSize =
             std::min(
                 chunkSize,
-                remaining);
+                remaining
+            );
 
         std::fill(
             chunkBuffer.begin(),
             chunkBuffer.end(),
-            0);
+            0
+        );
 
         const std::uintptr_t currentAddress =
             moduleBaseAddress +
             static_cast<std::uintptr_t>(
-                chunkOffset);
+                chunkOffset
+            );
 
         memoryReader_.readReadable(
             currentAddress,
             chunkBuffer.data(),
-            readSize);
+            readSize
+        );
 
         /*
          * [前チャンク末尾][現在チャンク]
@@ -194,44 +212,54 @@ bool PatternScanner::findAll(
 
         searchBuffer.reserve(
             previousTail.size() +
-            readSize);
+            readSize
+        );
 
         searchBuffer.insert(
             searchBuffer.end(),
             previousTail.begin(),
-            previousTail.end());
+            previousTail.end()
+        );
 
         searchBuffer.insert(
             searchBuffer.end(),
             chunkBuffer.begin(),
             chunkBuffer.begin() +
                 static_cast<std::ptrdiff_t>(
-                    readSize));
+                    readSize
+                )
+        );
 
         if (
             searchBuffer.size() >=
-            patternSize)
+            patternSize
+        )
         {
             for (
                 std::size_t i = 0;
                 i + patternSize <=
-                searchBuffer.size();
-                ++i)
+                    searchBuffer.size();
+                ++i
+            )
             {
                 if (!matchesAt(
                         searchBuffer.data() + i,
-                        pattern))
+                        pattern
+                    ))
                 {
                     continue;
                 }
 
                 const std::ptrdiff_t signedOffset =
                     static_cast<std::ptrdiff_t>(
-                        chunkOffset) -
+                        chunkOffset
+                    ) -
                     static_cast<std::ptrdiff_t>(
-                        previousTail.size()) +
+                        previousTail.size()
+                    ) +
                     static_cast<std::ptrdiff_t>(
-                        i);
+                        i
+                    );
 
                 if (signedOffset < 0)
                 {
@@ -242,7 +270,8 @@ bool PatternScanner::findAll(
 
                 result.rva =
                     static_cast<std::size_t>(
-                        signedOffset);
+                        signedOffset
+                    );
 
                 /*
                  * overlapによる同一matchの重複を防ぐ。
@@ -251,11 +280,12 @@ bool PatternScanner::findAll(
                     std::any_of(
                         matches.begin(),
                         matches.end(),
-                        [&](const PatternMatch &existing)
+                        [&](const PatternMatch& existing)
                         {
                             return existing.rva ==
-                                   result.rva;
-                        });
+                                result.rva;
+                        }
+                    );
 
                 if (alreadyExists)
                 {
@@ -274,7 +304,8 @@ bool PatternScanner::findAll(
         const std::size_t tailSize =
             std::min(
                 overlapSize,
-                readSize);
+                readSize
+            );
 
         if (tailSize > 0)
         {
@@ -282,37 +313,45 @@ bool PatternScanner::findAll(
                 previousTail.end(),
                 chunkBuffer.begin() +
                     static_cast<std::ptrdiff_t>(
-                        readSize - tailSize),
+                        readSize - tailSize
+                    ),
                 chunkBuffer.begin() +
                     static_cast<std::ptrdiff_t>(
-                        readSize));
+                        readSize
+                    )
+            );
         }
     }
 
     LOG_INFO(
         "Pattern search completed. Matches: " +
         std::to_string(
-            matches.size()));
+            matches.size()
+        )
+    );
 
     return !matches.empty();
 }
 
 bool PatternScanner::findAllInRange(
-    const Module &module,
-    const Pattern &pattern,
+    const Module& module,
+    const Pattern& pattern,
     std::size_t centerRva,
     std::size_t rangeSize,
-    std::vector<PatternMatch> &matches) const
+    std::vector<PatternMatch>& matches
+) const
 {
     matches.clear();
 
     if (!module.isLoaded())
     {
         LOG_ERROR(
-            "モジュールがロードされていません。");
+            "モジュールがロードされていません。"
+        );
 
         LOG_ERROR(
-            "The module has not been loaded.");
+            "The module has not been loaded."
+        );
 
         return false;
     }
@@ -320,10 +359,12 @@ bool PatternScanner::findAllInRange(
     if (!pattern.isValid())
     {
         LOG_ERROR(
-            "無効なPatternが指定されました。");
+            "無効なPatternが指定されました。"
+        );
 
         LOG_ERROR(
-            "An invalid pattern was specified.");
+            "An invalid pattern was specified."
+        );
 
         return false;
     }
@@ -380,7 +421,8 @@ bool PatternScanner::findAllInRange(
         1024ULL * 1024ULL;
 
     std::vector<std::uint8_t> chunkBuffer(
-        chunkSize);
+        chunkSize
+    );
 
     std::vector<std::uint8_t> previousTail;
 
@@ -394,12 +436,14 @@ bool PatternScanner::findAllInRange(
         const std::size_t readSize =
             std::min(
                 chunkSize,
-                remaining);
+                remaining
+            );
 
         std::fill(
             chunkBuffer.begin(),
             chunkBuffer.end(),
-            0);
+            0
+        );
 
         const std::size_t chunkRva =
             startRva + processedOffset;
@@ -407,55 +451,67 @@ bool PatternScanner::findAllInRange(
         const std::uintptr_t address =
             module.baseAddress() +
             static_cast<std::uintptr_t>(
-                chunkRva);
+                chunkRva
+            );
 
         memoryReader_.readReadable(
             address,
             chunkBuffer.data(),
-            readSize);
+            readSize
+        );
 
         std::vector<std::uint8_t> searchBuffer;
 
         searchBuffer.reserve(
             previousTail.size() +
-            readSize);
+            readSize
+        );
 
         searchBuffer.insert(
             searchBuffer.end(),
             previousTail.begin(),
-            previousTail.end());
+            previousTail.end()
+        );
 
         searchBuffer.insert(
             searchBuffer.end(),
             chunkBuffer.begin(),
             chunkBuffer.begin() +
                 static_cast<std::ptrdiff_t>(
-                    readSize));
+                    readSize
+                )
+        );
 
         if (
             searchBuffer.size() >=
-            patternSize)
+            patternSize
+        )
         {
             for (
                 std::size_t i = 0;
                 i + patternSize <=
-                searchBuffer.size();
-                ++i)
+                    searchBuffer.size();
+                ++i
+            )
             {
                 if (!matchesAt(
                         searchBuffer.data() + i,
-                        pattern))
+                        pattern
+                    ))
                 {
                     continue;
                 }
 
                 const std::ptrdiff_t signedRva =
                     static_cast<std::ptrdiff_t>(
-                        chunkRva) -
+                        chunkRva
+                    ) -
                     static_cast<std::ptrdiff_t>(
-                        previousTail.size()) +
+                        previousTail.size()
+                    ) +
                     static_cast<std::ptrdiff_t>(
-                        i);
+                        i
+                    );
 
                 if (signedRva < 0)
                 {
@@ -464,7 +520,8 @@ bool PatternScanner::findAllInRange(
 
                 const std::size_t matchRva =
                     static_cast<std::size_t>(
-                        signedRva);
+                        signedRva
+                    );
 
                 if (matchRva < startRva ||
                     matchRva + patternSize > endRva)
@@ -476,11 +533,12 @@ bool PatternScanner::findAllInRange(
                     std::any_of(
                         matches.begin(),
                         matches.end(),
-                        [&](const PatternMatch &existing)
+                        [&](const PatternMatch& existing)
                         {
                             return existing.rva ==
-                                   matchRva;
-                        });
+                                matchRva;
+                        }
+                    );
 
                 if (alreadyExists)
                 {
@@ -493,7 +551,8 @@ bool PatternScanner::findAllInRange(
                     matchRva;
 
                 matches.push_back(
-                    match);
+                    match
+                );
             }
         }
 
@@ -502,7 +561,8 @@ bool PatternScanner::findAllInRange(
         const std::size_t tailSize =
             std::min(
                 overlapSize,
-                readSize);
+                readSize
+            );
 
         if (tailSize > 0)
         {
@@ -510,10 +570,13 @@ bool PatternScanner::findAllInRange(
                 previousTail.end(),
                 chunkBuffer.begin() +
                     static_cast<std::ptrdiff_t>(
-                        readSize - tailSize),
+                        readSize - tailSize
+                    ),
                 chunkBuffer.begin() +
                     static_cast<std::ptrdiff_t>(
-                        readSize));
+                        readSize
+                    )
+            );
         }
 
         processedOffset +=
@@ -523,47 +586,9 @@ bool PatternScanner::findAllInRange(
     LOG_INFO(
         "Range pattern search completed. Matches: " +
         std::to_string(
-            matches.size()));
+            matches.size()
+        )
+    );
 
     return !matches.empty();
-}
-
-bool PatternScanner::matchesAtRva(
-    const Module &module,
-    const Pattern &pattern,
-    std::size_t rva) const
-{
-    if (!module.isLoaded() ||
-        !pattern.isValid())
-    {
-        return false;
-    }
-
-    const std::size_t patternSize =
-        pattern.bytes.size();
-
-    if (rva > module.imageSize() ||
-        patternSize > module.imageSize() - rva)
-    {
-        return false;
-    }
-
-    std::vector<std::uint8_t> buffer(
-        patternSize);
-
-    const std::uintptr_t address =
-        module.baseAddress() +
-        static_cast<std::uintptr_t>(rva);
-
-    if (!memoryReader_.read(
-            address,
-            buffer.data(),
-            buffer.size()))
-    {
-        return false;
-    }
-
-    return matchesAt(
-        buffer.data(),
-        pattern);
 }

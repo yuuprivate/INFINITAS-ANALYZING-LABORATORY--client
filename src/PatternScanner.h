@@ -43,11 +43,6 @@ public:
         std::size_t rangeSize,
         std::vector<PatternMatch> &matches) const;
 
-    bool matchesAtRva(
-        const Module &module,
-        const Pattern &pattern,
-        std::size_t rva) const;
-
 private:
     static bool matchesAt(
         const std::uint8_t *data,
