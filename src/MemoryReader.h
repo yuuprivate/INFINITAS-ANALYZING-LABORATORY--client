@@ -28,13 +28,6 @@ public:
         std::size_t size
     ) const;
 
-    /**
-     * @brief 指定したアドレスが実行コード領域（.text セクション等）にあるか確認します。
-     */
-    bool isExecutableAddress(
-        std::uintptr_t address
-    ) const;
-
     template<typename T>
     bool read(
         std::uintptr_t address,

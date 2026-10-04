@@ -11,14 +11,21 @@ namespace Logger
         std::string_view message
     );
 
+    void warn(
+        std::string_view source,
+        std::string_view message
+    );
+
     void error(
         std::string_view source,
         std::string_view message
     );
 }
 
-// 呼び出し元のファイル名を自動的に付ける
 #define LOG_INFO(message) \
+    Logger::info(__FILE__, message)
+
+#define LOG_WARN(message) \
     Logger::info(__FILE__, message)
 
 #define LOG_ERROR(message) \

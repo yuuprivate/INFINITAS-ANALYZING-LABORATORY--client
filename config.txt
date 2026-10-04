@@ -1,1 +1,3 @@
-API_ENDPOINT=http://127.0.0.1:8000/api/v1/receiver/upload
+GIST_FALLBACK_URL=https://gist.githubusercontent.com/yuuprivate/adfc3f98c80d2fda0653bf8c85a1feea/raw/url.txt
+API_ENDPOINT=https://oak-divisions-bacteria-philips.trycloudflare.com
+OFFSETS_DOWNLOAD=http://127.0.0.1:8000/api/v1/sender/download

@@ -174,9 +174,9 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
-    <ProjectReference Include="D:\recommendsite_client\project_client\build\project_client.vcxproj">
-      <Project>{C5ADB80F-6A51-380A-8DD2-EC4E5D9958E8}</Project>
-      <Name>project_client</Name>
+    <ProjectReference Include="D:\recommendsite_client\project_client\build\ANALAB_client.vcxproj">
+      <Project>{5FC52883-1242-397F-BA6B-60F1EFD96992}</Project>
+      <Name>ANALAB_client</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

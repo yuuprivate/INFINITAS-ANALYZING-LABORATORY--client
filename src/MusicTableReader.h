@@ -15,24 +15,24 @@ public:
 
     bool scanAndBuildMusicMap(std::uintptr_t searchStartRva = 0x3000000, std::size_t scanSize = 0x1000000);
 
-    std::string getTitle(std::int32_t songId) const;
+    // std::string getTitle(std::int32_t songId) const;
 
-    const std::unordered_map<std::int32_t, std::string> &getMusicMap() const { return musicMap_; }
+    // const std::unordered_map<std::int32_t, std::string> &getMusicMap() const { return musicMap_; }
 
-    bool exportToTsv(const std::string &filePath) const;
+    // bool exportToTsv(const std::string &filePath) const;
 
-    ChartNotes getChartNotes(std::int32_t songId) const;
+    // ChartNotes getChartNotes(std::int32_t songId) const;
 
-    ChartRatings getChartRatings(std::int32_t songId) const
-    {
-        auto it = ratingsMap_.find(songId);
-        if (it != ratingsMap_.end())
-            return it->second;
-        return ChartRatings{};
-    }
+    // ChartRatings getChartRatings(std::int32_t songId) const
+    // {
+    //     auto it = ratingsMap_.find(songId);
+    //     if (it != ratingsMap_.end())
+    //         return it->second;
+    //     return ChartRatings{};
+    // }
 
-    // 指定した Song ID の構造体内部を丸ごとダンプしてオフセットを検証するデバッグ関数
-    void debugInspectSong(std::int32_t targetSongId) const;    
+    // // 指定した Song ID の構造体内部を丸ごとダンプしてオフセットを検証するデバッグ関数
+    // void debugInspectSong(std::int32_t targetSongId) const;    
 
 private:
     std::vector<std::uint8_t> cachedBuffer_;

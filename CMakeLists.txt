@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(project_client LANGUAGES CXX)
+project(ANALAB_client LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-add_executable(project_client
+add_executable(ANALAB_client
     src/main.cpp
     src/Logger.cpp
     src/ProcessFinder.cpp
@@ -22,17 +23,27 @@ add_executable(project_client
     src/Tracker.cpp
     src/PlayResult.cpp
     src/PlayData.cpp
-    src/CurrentSong.cpp
     src/MusicTableReader.cpp
     src/PlayerProfileReader.cpp
-    src/Utils.cpp
     src/HttpClient.cpp
 )
 
 if (MSVC)
-    target_compile_options(project_client PRIVATE /utf-8)
-    target_compile_definitions(project_client PRIVATE NOMINMAX)
-    target_include_directories(project_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    target_include_directories(project_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/nlohman)
-    target_link_libraries(project_client PRIVATE ws2_32 wsock32)
+    target_compile_options(ANALAB_client PRIVATE 
+        /utf-8
+        /Gy
+        $<$<CONFIG:Release>:/MT>
+    )
+    target_compile_definitions(ANALAB_client PRIVATE NOMINMAX)
+    target_include_directories(ANALAB_client PRIVATE 
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/nlohman
+    )
+    target_link_libraries(ANALAB_client PRIVATE ws2_32 wsock32)
+
+    target_link_options(ANALAB_client PRIVATE
+        $<$<CONFIG:Release>:/OPT:REF>
+        $<$<CONFIG:Release>:/OPT:ICF>
+        $<$<CONFIG:Release>:/VERBOSE:REF>
+    )
 endif()

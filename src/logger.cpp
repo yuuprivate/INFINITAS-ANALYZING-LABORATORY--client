@@ -54,6 +54,14 @@ namespace Logger
         writeLog("INFO", source, message);
     }
 
+        void warn(
+        std::string_view source,
+        std::string_view message
+    )
+    {
+        writeLog("WARN", source, message);
+    }
+
     void error(
         std::string_view source,
         std::string_view message

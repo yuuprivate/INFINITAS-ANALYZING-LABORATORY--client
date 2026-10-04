@@ -32,15 +32,16 @@ std::string getCurrentIsoTimestamp()
 }
 
 // 1. JSON 文字列の生成（メインロジック）
-std::string Tracker::dumpJsonString(const std::string &infinitasId, const std::string &djName, const std::string &nonce) const
+std::string Tracker::dumpJsonString(const std::string &infinitasId, const std::string &djName) const
 {
     json root;
     root["infinitas_id"] = infinitasId;
     root["dj_name"] = djName;
-    root["nonce"] = nonce;
     root["updated_at"] = getCurrentIsoTimestamp();
 
     json entriesArray = json::array();
+
+    int loadedCount = 0;
 
     for (const auto &[key, entry] : entries_)
     {
@@ -60,20 +61,21 @@ std::string Tracker::dumpJsonString(const std::string &infinitasId, const std::s
         item["ex_score"] = entry.bestExScore;
         item["miss_count"] = entry.bestMissCount;
 
+        loadedCount++;
         entriesArray.push_back(item);
+        
     }
-
+    LOG_INFO("Successfully generated " + std::to_string(loadedCount) + " songs.");
     root["entries"] = entriesArray;
 
     return root.dump(4);
 }
 
-std::string Tracker::dumpSingleResultJsonString(const PlayResult &result, const std::string &infinitasId, const std::string &djName, const std::string &nonce) const
+std::string Tracker::dumpSingleResultJsonString(const PlayResult &result, const std::string &infinitasId, const std::string &djName) const
 {
     nlohmann::json root;
     root["infinitas_id"] = infinitasId;
     root["dj_name"] = djName;
-    root["nonce"] = nonce;
     root["updated_at"] = getCurrentIsoTimestamp();
 
     nlohmann::json item;
@@ -95,7 +97,7 @@ std::string Tracker::dumpSingleResultJsonString(const PlayResult &result, const 
 }
 
 // 2. ファイル書き出し（dumpJsonString を再利用）
-bool Tracker::writeJson(const std::string &filePath, const std::string &infinitasId, const std::string &djName, const std::string &nonce) const
+bool Tracker::writeJson(const std::string &filePath, const std::string &infinitasId, const std::string &djName) const
 {
     std::ofstream file(filePath, std::ios::out | std::ios::trunc);
 
@@ -105,7 +107,7 @@ bool Tracker::writeJson(const std::string &filePath, const std::string &infinita
         return false;
     }
 
-    file << dumpJsonString(infinitasId, djName, nonce);
+    file << dumpJsonString(infinitasId, djName);
     file.close();
 
     LOG_INFO("Tracker JSON saved successfully: " + filePath);

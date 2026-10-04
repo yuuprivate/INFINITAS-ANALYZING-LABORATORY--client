@@ -1,6 +1,6 @@
 ^D:\RECOMMENDSITE_CLIENT\PROJECT_CLIENT\BUILD\CMAKEFILES\FB684B1A3A002A38DEC30CC0C06F7A02\GENERATE.STAMP.RULE
 setlocal
-"C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/recommendsite_client/project_client -BD:/recommendsite_client/project_client/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/recommendsite_client/project_client/build/project_client.slnx
+"C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/recommendsite_client/project_client -BD:/recommendsite_client/project_client/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/recommendsite_client/project_client/build/ANALAB_client.slnx
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone

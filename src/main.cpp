@@ -1,5 +1,3 @@
-#include "httplib.h"
-
 #include "Logger.h"
 #include "MemoryReader.h"
 #include "Module.h"
@@ -13,10 +11,8 @@
 #include "VersionResolver.h"
 #include "JudgeData.h"
 #include "ScoreMapReader.h"
-#include "CurrentSong.h"
 #include "MusicTableReader.h"
 #include "PlayerProfileReader.h"
-#include "Utils.h"
 #include "HttpClient.h"
 
 #include <windows.h>
@@ -29,6 +25,8 @@
 #include <thread>
 #include <vector>
 #include <chrono>
+#include <fstream>
+#include <unordered_map>
 
 #include <iostream>
 
@@ -92,135 +90,6 @@ namespace
     }
 }
 
-// void dumpMemoryRegion(const MemoryReader &reader, std::uintptr_t baseAddr, const std::string &label)
-// {
-//     // 対象アドレスの前後 0x50 バイト (計 0x100 バイト = 256 バイト) を読み込み
-//     constexpr size_t DUMP_SIZE = 0x100;
-//     std::uintptr_t startAddr = baseAddr - 0x50;
-//     std::vector<std::uint8_t> buffer(DUMP_SIZE);
-
-//     if (!reader.read(startAddr, buffer.data(), buffer.size()))
-//     {
-//         LOG_ERROR("Failed to dump memory for: " + label);
-//         return;
-//     }
-
-//     LOG_INFO("==================================================");
-//     LOG_INFO(" MEMORY DUMP [" + label + "] Base: 0x" + [](uintptr_t v)
-//              {
-//         std::ostringstream ss; ss << std::hex << v; return ss.str(); }(baseAddr));
-//     LOG_INFO(" Range: 0x" + [](uintptr_t v)
-//              {
-//         std::ostringstream ss; ss << std::hex << v; return ss.str(); }(startAddr) + " - 0x" + [](uintptr_t v)
-//              {
-//         std::ostringstream ss; ss << std::hex << v; return ss.str(); }(startAddr + DUMP_SIZE));
-//     LOG_INFO("==================================================");
-
-//     // 16バイトごとにヘキサダンプを出力
-//     for (size_t offset = 0; offset < DUMP_SIZE; offset += 16)
-//     {
-//         std::ostringstream line;
-//         uintptr_t currentAddr = startAddr + offset;
-
-//         // アドレス
-//         line << std::hex << std::setw(8) << std::setfill('0') << currentAddr << ": ";
-
-//         // 16バイトのHEX表示
-//         for (size_t i = 0; i < 16; ++i)
-//         {
-//             line << std::hex << std::setw(2) << std::setfill('0')
-//                  << static_cast<int>(buffer[offset + i]) << " ";
-//         }
-
-//         LOG_INFO(line.str());
-//     }
-//     LOG_INFO("--------------------------------------------------");
-// }
-void showJudgeSnapshot(
-    JudgeSnapshot &snapshot)
-{
-    LOG_INFO("--- Judge Snapshot Details ---");
-    LOG_INFO("P-GREAT P1         : " + std::to_string(snapshot.p1Pgreat));
-    LOG_INFO("GREAT P1           : " + std::to_string(snapshot.p1Great));
-    LOG_INFO("GOOD P1            : " + std::to_string(snapshot.p1Good));
-    LOG_INFO("BAD P1             : " + std::to_string(snapshot.p1Bad));
-    LOG_INFO("POOR P1            : " + std::to_string(snapshot.p1Poor));
-    LOG_INFO("P-GREAT P2         : " + std::to_string(snapshot.p2Pgreat));
-    LOG_INFO("GREAT P2           : " + std::to_string(snapshot.p2Great));
-    LOG_INFO("GOOD P2            : " + std::to_string(snapshot.p2Good));
-    LOG_INFO("BAD P2             : " + std::to_string(snapshot.p2Bad));
-    LOG_INFO("POOR P2            : " + std::to_string(snapshot.p2Poor));
-    LOG_INFO("COMBO BREAK P1     : " + std::to_string(snapshot.p1ComboBreak));
-    LOG_INFO("COMBO BREAK P2     : " + std::to_string(snapshot.p2ComboBreak));
-    LOG_INFO("FAST P1            : " + std::to_string(snapshot.p1Fast));
-    LOG_INFO("FAST P2            : " + std::to_string(snapshot.p2Fast));
-    LOG_INFO("SLOW P1            : " + std::to_string(snapshot.p1Slow));
-    LOG_INFO("SLOW P2            : " + std::to_string(snapshot.p2Slow));
-    LOG_INFO("MEASURE END P1     : " + std::to_string(snapshot.p1MeasureEnd));
-    LOG_INFO("MEASURE END P2     : " + std::to_string(snapshot.p2MeasureEnd));
-    LOG_INFO("PLAY TYPE          : " + std::to_string(static_cast<int>(snapshot.playType)));
-}
-
-// 選曲中の楽曲情報を読み取り、該当スコアレコードの HEX Dump を出力する処理
-void inspectCurrentSongRecord(
-    const MemoryReader &memoryReader,
-    const ScoreMapReader &scoreMapReader,
-    std::uintptr_t currentSongAddress,
-    std::uintptr_t dataMapRva)
-{
-    LOG_INFO("==================================================");
-    LOG_INFO("選曲中（CurrentSong）のスコアレコード詳細解析");
-
-    CurrentSongReader currentSongReader(memoryReader);
-    CurrentSongSnapshot songSnapshot;
-
-    if (!currentSongReader.read(currentSongAddress, songSnapshot))
-    {
-        LOG_ERROR("CurrentSong の取得に失敗しました。");
-        return;
-    }
-
-    LOG_INFO("現在選曲中: song_id = " + std::to_string(songSnapshot.songId) + " / difficulty = " + std::to_string(songSnapshot.difficulty));
-
-    if (songSnapshot.songId == 0)
-    {
-        LOG_INFO("song_id が 0 です。選曲画面で楽曲を選択した状態でお試しください。");
-        return;
-    }
-
-    // 取得した songId と difficulty を使ってスコアレコードを Raw Dump
-    scoreMapReader.inspectScoreRecord(dataMapRva, songSnapshot.songId, songSnapshot.difficulty);
-    LOG_INFO("==================================================");
-}
-
-// httplib::Client cli("127.0.0.1", 8000);
-
-// std::cout << "Connecting to server..." << std::endl;
-
-// // GET /ping リクエストの送信
-// if (auto res = cli.Get("/"))
-// {
-//     if (res->status == 200)
-//     {
-//         std::cout << "Success!" << std::endl;
-//         std::cout << "Response Body: " << res->body << std::endl;
-//     }
-//     else
-//     {
-//         std::cout << "HTTP Error Status: " << res->status << std::endl;
-//     }
-// }
-// else
-// {
-//     auto err = res.error();
-//     std::cout << "Connection Failed. Error code: " << static_cast<int>(err) << std::endl;
-// }
-// return 0;
-
-#include <fstream>
-#include <string>
-#include <unordered_map>
-
 // シンプルな Key=Value 設定ファイル読み込み関数
 std::unordered_map<std::string, std::string> loadEnvFile(const std::string &filePath)
 {
@@ -243,6 +112,48 @@ std::unordered_map<std::string, std::string> loadEnvFile(const std::string &file
         }
     }
     return config;
+}
+std::string difficultyResolver(std::int32_t difficulty)
+{
+    switch (difficulty)
+    {
+    case 0:
+        return "BEGINNER";
+    case 1:
+        return "NORMAL";
+    case 2:
+        return "HYPER";
+    case 3:
+        return "ANOTHER";
+    case 4:
+        return "LEGGENDARIA";
+    default:
+        return "UNKNOWN";
+    }
+}
+std::string clearlampResolver(std::int32_t clearlamp)
+{
+    switch (clearlamp)
+    {
+    case 0:
+        return "NO PLAY";
+    case 1:
+        return "FAILED";
+    case 2:
+        return "ASSISTED EASY";
+    case 3:
+        return "EASY CLEAR";
+    case 4:
+        return "CLEAR";
+    case 5:
+        return "HARD CLEAR";
+    case 6:
+        return "EX-HARD CLEAR";
+    case 7:
+        return "FULL COMBO";
+    default:
+        return "UNKNOWN";
+    }
 }
 
 int main()
@@ -365,6 +276,8 @@ int main()
             if (!memoryReader.read(songListAddress, buffer.data(), buffer.size()))
             {
                 LOG_INFO("楽曲リストをまだ読み取れません。再試行します...");
+
+                std::this_thread::sleep_for(std::chrono::seconds(20));
 
                 continue;
             }
@@ -544,15 +457,9 @@ int main()
             }
         }
 
-        // 設定ファイルを読み込み
-        auto config = loadEnvFile("config.txt");
-        // 設定ファイルがあればその値、なければデフォルト値（開発用）を使用
-        std::string apiEndpoint = config.count("API_ENDPOINT") ? config["API_ENDPOINT"] : "http://127.0.0.1:8000/api/v1/scores";
-
-        HttpClient httpClient(apiEndpoint);
-
         LOG_INFO("######## PLAYER PROFILE READ START ########");
 
+        // const std::uintptr_t playerProfileBase = offsetManager.get(OffsetType::PlayerProfile);
         const std::uintptr_t playerProfileAddress = offsetManager.getAddress(OffsetType::PlayerProfile, baseAddress);
 
         LOG_INFO(std::string("PlayerProfile の絶対アドレス: 0x") + toHex(playerProfileAddress));
@@ -597,10 +504,9 @@ int main()
 
         LOG_INFO("======== SCORE MAP FULL SCAN END ========");
 
-        LOG_INFO("######## EXPORT TO TRACKER TSV START ########");
+        LOG_INFO("######## EXPORT TO TRACKER START ########");
 
         Tracker tracker;
-        std::string nonce = Utils::generateNonce();
 
         MusicTableReader musicReader(memoryReader, module.baseAddress(), 74874880);
 
@@ -610,21 +516,30 @@ int main()
             LOG_ERROR("楽曲マップの検出とビルドに失敗しました。ノーツ数と楽曲名は無効になります");
         }
 
+        scoreMapReader.dumpAllRecordsToTracker(configuredDataMapRva, tracker, musicReader);
         // 1. ローカルファイル (tracker.json) への書き出し
-        if (tracker.writeJson("tracker.json", infinitasId, djName, nonce))
+        if (tracker.writeJson("tracker.json", infinitasId, djName))
         {
-            LOG_INFO("tracker.json successfully updated! (Nonce: " + nonce + ")");
+            LOG_INFO("tracker.json successfully updated!");
         }
         else
         {
             LOG_ERROR("Failed to write tracker.json.");
         }
-
         // 2. HTTP POST 送信（ペロード送信）
-        LOG_INFO("Sending score data to server (" + apiEndpoint + ")...");
-        std::string jsonPayload = tracker.dumpJsonString(infinitasId, djName, nonce);
+        auto config = loadEnvFile("config.txt");
+        std::string targetUrl = config.count("API_ENDPOINT") && !config["API_ENDPOINT"].empty() ? config["API_ENDPOINT"] : "";
 
-        if (httpClient.postJson(jsonPayload))
+        // もし API_ENDPOINT が空で、GIST_FALLBACK_URL があればそちらを初期URLとして使う
+        std::string initialUrl = !targetUrl.empty() ? targetUrl : (config.count("GIST_FALLBACK_URL") ? config["GIST_FALLBACK_URL"] : "");
+
+        LOG_INFO("Sending score data to server...");
+        std::string jsonPayload = tracker.dumpJsonString(infinitasId, djName);
+
+        HttpClient httpClient(initialUrl);
+        bool success = httpClient.postJsonWithFallback(jsonPayload);
+
+        if (success)
         {
             LOG_INFO("Server payload successfully transmitted!");
         }
@@ -632,21 +547,16 @@ int main()
         {
             LOG_ERROR("Failed to transmit payload to server.");
         }
-
-        LOG_INFO("######## EXPORT TO TRACKER TSV END ########");
+        LOG_INFO("######## EXPORT TO TRACKER END ########");
 
         // 15. JudgeData / リザルト監視ループ
-        const std::uintptr_t knownJudgeDataAddress = offsetManager.getAddress(OffsetType::JudgeData, baseAddress);
-        LOG_INFO("既知の判定データの絶対アドレス: 0x" + toHex(knownJudgeDataAddress));
-
         PlayDataReader playDataReader(memoryReader);
-        CurrentSongReader currentSongReader(memoryReader);
         JudgeDataReader judgeReader(memoryReader);
 
         // 各種アドレス設定
-        const std::uintptr_t songStateAddr = baseAddress + 0x31ACF5C;
-        const std::uintptr_t playDataBaseAddr = baseAddress + 0x025D9404;
-        const std::uintptr_t judgeDataBaseAddr = knownJudgeDataAddress;
+        const std::uintptr_t songStateAddr = offsetManager.getAddress(OffsetType::SongState, baseAddress);
+        const std::uintptr_t playDataBaseAddr = offsetManager.getAddress(OffsetType::PlayData, baseAddress);
+        const std::uintptr_t judgeDataBaseAddr = offsetManager.getAddress(OffsetType::JudgeData, baseAddress);
 
         int32_t prevSongState = 0;
         JudgeSnapshot activeJudgeSnap{};
@@ -655,11 +565,7 @@ int main()
 
         while (true)
         {
-            if (WaitForSingleObject(process.handle(), 0) == WAIT_OBJECT_0)
-            {
-                LOG_INFO("Game process termination detected.");
-                break;
-            }
+            //  プロセス終了判定 作成予定
 
             int32_t currentSongState = 0;
             memoryReader.read(songStateAddr, &currentSongState, sizeof(currentSongState));
@@ -678,16 +584,13 @@ int main()
                     // 1. playData と judgeSnap から正確な PlayResult を構築
                     PlayResult result = createPlayResult(activeJudgeSnap, playData);
 
-                    // 楽曲情報データベース等から楽曲名やレベル(☆)を取得・補完している場合はここで実行
-                    // musicTable.lookup(result.songId, result.difficulty, result);
+                    // LOG_INFO("Song ID     : " + std::to_string(result.songId));
 
-                    // showJudgeSnapshot(activeJudgeSnap);
-                    LOG_INFO("Song ID     : " + std::to_string(result.songId));
-                    LOG_INFO("Difficulty  : " + std::to_string(result.difficulty));
-                    LOG_INFO("Play Type   : " + std::to_string(static_cast<int>(result.playType)));
+                    std::string pt = static_cast<int>(result.playType) == 1 ? "DP" : "SP";
+                    std::string diff = difficultyResolver(result.difficulty);
+                    LOG_INFO("Difficulty  : " + (pt + " " + diff));
                     LOG_INFO("EX Score    : " + std::to_string(result.exScore));
-                    LOG_INFO("Miss Count  : " + std::to_string(result.missCount));
-                    LOG_INFO("Clear Lamp  : " + std::to_string(result.clearLamp));
+                    LOG_INFO("Clear Lamp  : " + clearlampResolver(result.clearLamp));
 
                     // 2. ローカルの全曲トラッカーの記録を更新
                     tracker.update(result);
@@ -701,17 +604,12 @@ int main()
 
                     if (!currentInfinitasId.empty())
                     {
-                        const std::string resultNonce = Utils::generateNonce();
-
-                        // 3. ローカルファイルへの保存
-                        tracker.writeJson("tracker.json", currentInfinitasId, djName, resultNonce);
-
                         // 4. 正確な result から 1曲分 JSON を作成して送信
-                        const std::string resultPayload = tracker.dumpSingleResultJsonString(result, currentInfinitasId, djName, resultNonce);
+                        const std::string resultPayload = tracker.dumpSingleResultJsonString(result, currentInfinitasId, djName);
 
-                        LOG_INFO("Sending single score result to server (" + apiEndpoint + ")...");
+                        LOG_INFO("Sending single score result to server...");
 
-                        if (httpClient.postJson(resultPayload))
+                        if (httpClient.postJsonWithFallback(resultPayload))
                         {
                             LOG_INFO("Server payload successfully transmitted!");
                         }
@@ -723,7 +621,7 @@ int main()
                 }
                 else
                 {
-                    LOG_ERROR("Failed to read PlayDataSnapshot from 0x25D9404.");
+                    LOG_ERROR("Failed to read PlayDataSnapshot.");
                 }
                 LOG_INFO("--------------------------------------------------");
             }

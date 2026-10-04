@@ -12,7 +12,8 @@ enum class OffsetType
     PlaySettings,
     UnlockData,
     CurrentSong,
-    PlayerProfile
+    PlayerProfile,
+    SongState
 };
 
 struct OffsetCollection
@@ -27,4 +28,5 @@ struct OffsetCollection
     std::uintptr_t unlockData = 0;
     std::uintptr_t currentSong = 0;
     std::uintptr_t playerProfile = 0;
+    std::uintptr_t songState = 0;
 };

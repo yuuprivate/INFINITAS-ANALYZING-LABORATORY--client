@@ -55,6 +55,8 @@ public:
 
     bool findMusicTableCandidateToTsv(const std::string &outputTsvPath = "music_table_candidates.tsv") const;
 
+    bool dumpAllRecordsToTracker(std::uintptr_t dataMapRva, Tracker &tracker, const MusicTableReader &musicTableReader) const;
+
 private:
     const MemoryReader &memoryReader_;
     const Module &module_;

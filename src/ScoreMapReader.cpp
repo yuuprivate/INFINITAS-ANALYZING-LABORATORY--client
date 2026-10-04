@@ -3,7 +3,6 @@
 #include "Logger.h"
 #include "ChartNotes.h"
 #include "PlayerProfileReader.h"
-#include "Utils.h"
 
 #include <string>
 #include <cstddef>
@@ -849,6 +848,104 @@ bool ScoreMapReader::scanAllScoreRecords(std::uintptr_t dataMapRva) const
     // LOG_INFO("Detected Song ID Range     : " + std::to_string(minSongId) + " ~ " + std::to_string(maxSongId));
     // LOG_INFO("==============================================");
 
+    return true;
+}
+bool ScoreMapReader::dumpAllRecordsToTracker(
+    std::uintptr_t dataMapRva,
+    Tracker &tracker,
+    const MusicTableReader &musicTableReader
+    ) const
+{
+    LOG_INFO("======== DUMP ALL RECORDS TO TRACKER START ========");
+
+    const std::uintptr_t dataMapAddress = module_.baseAddress() + dataMapRva;
+    std::uintptr_t rootAddress = 0;
+
+    if (!memoryReader_.read(dataMapAddress, &rootAddress, sizeof(rootAddress)) || rootAddress == 0)
+    {
+        LOG_ERROR("Failed to read rootAddress from DataMap.");
+        return false;
+    }
+
+    constexpr std::size_t recordSize = 0x40;
+    std::set<std::uintptr_t> visited;
+    std::vector<std::uintptr_t> stack;
+    std::size_t exportedCount = 0;
+
+    std::uintptr_t current = rootAddress;
+
+    while (current != 0 || !stack.empty())
+    {
+        while (current != 0 && visited.find(current) == visited.end())
+        {
+            visited.insert(current);
+            stack.push_back(current);
+
+            std::uintptr_t leftChild = 0;
+            if (!memoryReader_.read(current + 0x00, &leftChild, sizeof(leftChild)))
+            {
+                leftChild = 0;
+            }
+            current = leftChild;
+        }
+
+        if (stack.empty())
+            break;
+
+        current = stack.back();
+        stack.pop_back();
+
+        std::vector<std::uint8_t> buf(recordSize);
+        if (memoryReader_.read(current, buf.data(), recordSize))
+        {
+
+            std::uint32_t diff = *reinterpret_cast<const std::uint32_t *>(&buf[0x10]);
+            std::uint32_t songId = *reinterpret_cast<const std::uint32_t *>(&buf[0x14]);
+            std::uint32_t playType = *reinterpret_cast<const std::uint32_t *>(&buf[0x18]); // 0: SP, 1: DP
+            std::uint32_t exScore = *reinterpret_cast<const std::uint32_t *>(&buf[0x20]);
+            std::uint32_t missCount = *reinterpret_cast<const std::uint32_t *>(&buf[0x24]);
+            std::uint32_t clearLamp = *reinterpret_cast<const std::uint32_t *>(&buf[0x30]);
+
+            // 有効な楽曲レコードか判定のブロック内
+            if (songId != 0 && diff <= 5)
+            {
+                JudgePlayType pType = (playType == 1) ? JudgePlayType::DP : JudgePlayType::P1;
+
+                PlayResult result{};
+                result.songId = static_cast<std::int32_t>(songId);
+                result.difficulty = static_cast<std::int32_t>(diff);
+                result.playType = pType;
+
+                result.clearLamp = static_cast<std::uint8_t>(clearLamp);
+                result.exScore = static_cast<std::int32_t>(exScore);
+
+                if (missCount != 0xFFFFFFFF && missCount < 99999)
+                {
+                    result.missCount = static_cast<std::int32_t>(missCount);
+                    result.missCountValid = true;
+                }
+                else
+                {
+                    result.missCountValid = false;
+                }
+
+                result.timestamp = std::chrono::system_clock::now();
+                tracker.update(result);
+                exportedCount++;
+            }
+        }
+
+        std::uintptr_t rightChild = 0;
+        if (!memoryReader_.read(current + 0x08, &rightChild, sizeof(rightChild)))
+        {
+            rightChild = 0;
+        }
+        current = rightChild;
+    }
+
+    LOG_INFO("Exported " + std::to_string(exportedCount) + " total valid records to Tracker.");
+
+    LOG_INFO("======== DUMP ALL RECORDS TO TRACKER END ========");
     return true;
 }
 

@@ -39,8 +39,7 @@ public:
     bool writeJson(
         const std::string &filePath,
         const std::string &infinitasId,
-        const std::string &djName,
-        const std::string &nonce) const;
+        const std::string &djName) const;
 
     bool appendPlayResultTsv(
         const std::string &filePath,
@@ -49,14 +48,12 @@ public:
 
     std::string dumpJsonString(
         const std::string &infinitasId,
-        const std::string &djName,
-        const std::string &nonce) const;
+        const std::string &djName) const;
 
     std::string dumpSingleResultJsonString(
         const PlayResult &result, 
         const std::string &infinitasId, 
-        const std::string &djName, 
-        const std::string &nonce) const;
+        const std::string &djName) const;
 
 private:
     using ChartKey = std::tuple<std::int32_t, std::int32_t, JudgePlayType>;
