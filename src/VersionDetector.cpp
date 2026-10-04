@@ -432,10 +432,6 @@ bool VersionDetector::detect(
         return false;
     }
 
-    /*
-     * 従来のReflux互換動作として、
-     * 最後に発見したVersionを返す。
-     */
     const VersionCandidate& selected =
         candidates.back();
 

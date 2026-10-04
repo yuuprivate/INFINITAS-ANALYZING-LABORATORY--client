@@ -375,12 +375,6 @@ bool OffsetSearcher::searchUnlockData(
             }());
     }
 
-    /*
-     * 現時点では最初の候補を採用。
-     *
-     * 今後、Refluxと同様に候補周辺のデータを
-     * 検証して正しい候補に絞り込む。
-     */
     result.type =
         OffsetType::UnlockData;
 
@@ -424,11 +418,6 @@ bool OffsetSearcher::searchDataMap(
      */
     constexpr std::size_t knownOffset =
         0x035BAB88;
-
-    /*
-     * Refluxの探索方式に合わせて、
-     * 初期2MBから開始し、必要なら倍々で拡大する。
-     */
     constexpr std::size_t initialSearchSpace =
         2ULL * 1024ULL * 1024ULL;
 
